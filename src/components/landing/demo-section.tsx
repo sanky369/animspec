@@ -18,7 +18,7 @@ export function DemoSection() {
   const [demoUsed, setDemoUsed] = useState(false);
   const [config, setConfig] = useState<AnalysisConfig>({
     format: 'natural',
-    quality: 'fast', // Demo only allows fast
+    quality: 'balanced', // Demo uses balanced (Gemini 3 Flash) for better quality
     triggerContext: null,
   });
 
@@ -79,7 +79,7 @@ export function DemoSection() {
     }
 
     // Run analysis
-    await analyze(file, metadata, { ...config, quality: 'fast' });
+    await analyze(file, metadata, { ...config, quality: 'balanced' });
 
     // Mark demo as used (only for non-authenticated users)
     if (!user) {
@@ -145,7 +145,7 @@ export function DemoSection() {
                 />
 
                 <div className="demo-quality-info">
-                  <span className="badge badge-subtle">Fast mode (Gemini 2.5 Flash)</span>
+                  <span className="badge badge-subtle">Balanced mode (Gemini 3 Flash Thinking)</span>
                   {!user && <span className="demo-quality-note">Sign in for more options</span>}
                 </div>
 

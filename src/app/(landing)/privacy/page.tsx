@@ -35,7 +35,7 @@ export default function PrivacyPolicyPage() {
               any questions about this Privacy Policy or our data practices, please contact us at:
             </p>
             <p className="legal-contact">
-              Email: privacy@animspec.ai<br />
+              Email: team@tinkerbrains.com<br />
             </p>
           </section>
 
@@ -137,7 +137,7 @@ export default function PrivacyPolicyPage() {
               <li><strong>Right to Withdraw Consent:</strong> Withdraw consent at any time where processing is based on consent.</li>
             </ul>
             <p>
-              To exercise these rights, please contact us at privacy@animspec.ai. We will respond
+              To exercise these rights, please contact us at team@tinkerbrains.com. We will respond
               within 30 days. You also have the right to lodge a complaint with your local data
               protection authority.
             </p>
@@ -200,7 +200,7 @@ export default function PrivacyPolicyPage() {
               contact us:
             </p>
             <p className="legal-contact">
-              Email: privacy@animspec.ai<br />
+              Email: team@tinkerbrains.com<br />
               Subject: Privacy Inquiry
             </p>
           </section>

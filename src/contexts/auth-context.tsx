@@ -42,11 +42,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (profileSnap.exists()) {
         const data = profileSnap.data();
+
+        // Update profile if Google provides name/avatar that we don't have
+        const updates: Record<string, unknown> = {};
+        if (!data.fullName && firebaseUser.displayName) {
+          updates.fullName = firebaseUser.displayName;
+        }
+        if (!data.avatarUrl && firebaseUser.photoURL) {
+          updates.avatarUrl = firebaseUser.photoURL;
+        }
+
+        // Apply updates if any
+        if (Object.keys(updates).length > 0) {
+          updates.updatedAt = serverTimestamp();
+          await setDoc(profileRef, updates, { merge: true });
+        }
+
         return {
           id: profileSnap.id,
           email: data.email,
-          fullName: data.fullName,
-          avatarUrl: data.avatarUrl,
+          fullName: updates.fullName as string || data.fullName,
+          avatarUrl: updates.avatarUrl as string || data.avatarUrl,
           creditsBalance: data.creditsBalance,
           creditsExpiresAt: data.creditsExpiresAt?.toDate() || null,
           hasUsedFreeTrial: data.hasUsedFreeTrial,

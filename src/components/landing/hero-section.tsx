@@ -25,24 +25,24 @@ export function HeroSection() {
         <div className="hero-content animate-slide-in-left">
           <div className="hero-eyebrow">
             <ZapIcon className="w-3.5 h-3.5" />
-            <span>AI-Powered Analysis</span>
+            <span>AI-Powered Animation Cloning</span>
           </div>
 
           <h1 className="hero-title text-balance">
-            Video to
-            <span className="hero-title-accent">Code-Ready</span>
-            Animation Specs
+            Clone
+            <span className="hero-title-accent">Any UI Animation</span>
+            with Ease
           </h1>
 
           <p className="hero-subtitle text-balance">
-            Transform any animation video into precise, agent-ready instructions.
-            Built for Claude Code, Cursor, and modern AI coding tools.
+            See an animation you love? Record it, upload it, get agent-ready prompts.
+            Instant specs for Claude Code, Cursor, and AI coding agents.
           </p>
 
           <div className="hero-features">
             <div className="feature-tag stagger-1">
               <ZapIcon className="w-3.5 h-3.5" />
-              <span>Gemini Vision</span>
+              <span>Instant Analysis</span>
             </div>
             <div className="feature-tag stagger-2">
               <ClipboardIcon className="w-3.5 h-3.5" />
@@ -50,7 +50,7 @@ export function HeroSection() {
             </div>
             <div className="feature-tag stagger-3">
               <CpuIcon className="w-3.5 h-3.5" />
-              <span>Agent-Optimized</span>
+              <span>AI-Agent Ready</span>
             </div>
           </div>
         </div>

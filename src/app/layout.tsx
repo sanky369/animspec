@@ -22,10 +22,25 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'AnimSpec.ai - Video to Animation Instructions',
+  title: 'AnimSpec - Clone Any UI Animation to Code | CSS, GSAP, Framer Motion',
   description:
-    'Transform any animation video into precise, agent-ready instructions for Claude Code, Cursor, Codex, and more.',
-  keywords: ['animation', 'AI', 'CSS', 'GSAP', 'Framer Motion', 'Claude Code', 'video analysis'],
+    'See an animation you love? Clone it. Upload a video, get agent-ready prompts and code specs. CSS, GSAP, Framer Motion output for Claude Code, Cursor & AI coding agents.',
+  keywords: [
+    'clone UI animation',
+    'clone website animation',
+    'copy animation CSS',
+    'reverse engineer animation',
+    'animation handoff',
+    'video to CSS animation',
+    'animation to code',
+    'recreate animation',
+    'Claude Code animation',
+    'Cursor AI animation',
+    'GSAP timeline',
+    'Framer Motion',
+    'CSS keyframes',
+    'AI coding agent',
+  ],
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },

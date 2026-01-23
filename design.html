@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AnimSpec.ai - Video to Animation Instructions</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a24;
+            --accent-cyan: #00ffd5;
+            --accent-purple: #a855f7;
+            --accent-orange: #ff6b35;
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: #2a2a3a;
+            --gradient-1: linear-gradient(135deg, #00ffd5 0%, #00b4d8 50%, #a855f7 100%);
+            --gradient-2: linear-gradient(135deg, #ff6b35 0%, #a855f7 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(0, 255, 213, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 213, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .bg-glow {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .bg-glow-1 {
+            top: -200px;
+            right: -200px;
+            background: var(--accent-cyan);
+        }
+
+        .bg-glow-2 {
+            bottom: -200px;
+            left: -200px;
+            background: var(--accent-purple);
+        }
+
+        /* Header */
+        header {
+            position: relative;
+            z-index: 10;
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .logo-text {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 1.5rem;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-badge {
+            font-size: 0.7rem;
+            padding: 0.25rem 0.5rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-muted);
+        }
+
+        /* Main Container */
+        main {
+            position: relative;
+            z-index: 10;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 3rem 0 2rem;
+        }
+
+        .hero h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 1rem;
+        }
+
+        .hero h1 span {
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.125rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 2rem;
+            line-height: 1.6;
+        }
+
+        .hero-badges {
+            display: flex;
+            justify-content: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.4rem 0.75rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 100px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .badge-icon {
+            font-size: 0.9rem;
+        }
+
+        /* Main App Area */
+        .app-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        @media (max-width: 968px) {
+            .app-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Panel Styles */
+        .panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+        }
+
+        .panel-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .panel-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .panel-content {
+            padding: 1.5rem;
+        }
+
+        /* Upload Zone */
+        .upload-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(0, 255, 213, 0.02);
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent-cyan);
+            background: rgba(0, 255, 213, 0.05);
+        }
+
+        .upload-zone.dragover {
+            border-color: var(--accent-cyan);
+            background: rgba(0, 255, 213, 0.08);
+            transform: scale(1.01);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.8;
+        }
+
+        .upload-zone h3 {
+            font-size: 1.125rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-zone p {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .upload-zone .or {
+            display: block;
+            margin: 1rem 0;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        /* Video Preview */
+        .video-preview {
+            display: none;
+            position: relative;
+        }
+
+        .video-preview.active {
+            display: block;
+        }
+
+        .video-preview video {
+            width: 100%;
+            border-radius: 8px;
+            background: #000;
+        }
+
+        .video-info {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .video-info-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            text-align: center;
+        }
+
+        .video-info-label {
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .video-info-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+            color: var(--accent-cyan);
+        }
+
+        /* Options Panel */
+        .options-grid {
+            display: grid;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .option-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .option-group select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .option-group select:hover,
+        .option-group select:focus {
+            border-color: var(--accent-cyan);
+            outline: none;
+        }
+
+        /* Format Selector */
+        .format-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+
+        .format-option {
+            padding: 0.75rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .format-option:hover {
+            border-color: var(--accent-cyan);
+        }
+
+        .format-option.active {
+            border-color: var(--accent-cyan);
+            background: rgba(0, 255, 213, 0.1);
+        }
+
+        .format-option-icon {
+            font-size: 1.25rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .format-option-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        /* Analyze Button */
+        .analyze-btn {
+            width: 100%;
+            padding: 1rem 2rem;
+            margin-top: 1.5rem;
+            background: var(--gradient-1);
+            border: none;
+            border-radius: 10px;
+            color: var(--bg-primary);
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 255, 213, 0.3);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .analyze-btn.loading {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Output Panel */
+        .output-tabs {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0 1.25rem;
+            margin-top: -1px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .output-tab {
+            padding: 0.75rem 1rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            background: none;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            transition: color 0.2s;
+        }
+
+        .output-tab:hover {
+            color: var(--text-secondary);
+        }
+
+        .output-tab.active {
+            color: var(--accent-cyan);
+        }
+
+        .output-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--accent-cyan);
+        }
+
+        /* Code Output */
+        .code-output {
+            position: relative;
+        }
+
+        .code-block {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .code-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .code-action-btn {
+            padding: 0.35rem 0.6rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .code-action-btn:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        .code-content {
+            padding: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.6;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .code-content pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        /* Syntax Highlighting */
+        .keyword { color: #ff79c6; }
+        .property { color: #8be9fd; }
+        .value { color: #50fa7b; }
+        .string { color: #f1fa8c; }
+        .comment { color: #6272a4; }
+        .number { color: #bd93f9; }
+
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 2rem;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-state p {
+            font-size: 0.85rem;
+        }
+
+        /* Loading State */
+        .loading-state {
+            display: none;
+            padding: 3rem;
+            text-align: center;
+        }
+
+        .loading-state.active {
+            display: block;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-steps {
+            margin-top: 1.5rem;
+            text-align: left;
+            max-width: 250px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .loading-step {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .loading-step.complete {
+            color: var(--accent-cyan);
+        }
+
+        .loading-step.active {
+            color: var(--text-primary);
+        }
+
+        .step-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid currentColor;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+        }
+
+        .loading-step.complete .step-indicator {
+            background: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+            color: var(--bg-primary);
+        }
+
+        .loading-step.active .step-indicator {
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        /* How It Works Section */
+        .how-it-works {
+            margin-top: 4rem;
+            padding: 3rem 0;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .how-it-works h2 {
+            text-align: center;
+            font-family: 'Syne', sans-serif;
+            font-size: 1.75rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .steps-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .step-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .step-number {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 24px;
+            height: 24px;
+            background: var(--gradient-1);
+            border-radius: 50%;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--bg-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .step-icon {
+            font-size: 2rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .step-card h3 {
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .step-card p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 4rem;
+            padding: 2rem;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        footer a {
+            color: var(--accent-cyan);
+            text-decoration: none;
+        }
+
+        /* Utility */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Effects -->
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <!-- Header -->
+    <header>
+        <div class="logo">
+            <div class="logo-icon">🎬</div>
+            <span class="logo-text">AnimSpec.ai</span>
+        </div>
+        <span class="header-badge">BETA v0.1</span>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Video to <span>Animation Instructions</span></h1>
+            <p>Transform any animation video into precise, agent-ready instructions for Claude Code, Cursor, Codex, and more.</p>
+            <div class="hero-badges">
+                <span class="badge"><span class="badge-icon">⚡</span> Gemini 3 + 2.5 Series</span>
+                <span class="badge"><span class="badge-icon">🔮</span> gpt-5.2 / GPT-5.2</span>
+                <span class="badge"><span class="badge-icon">📋</span> CSS / GSAP / Framer</span>
+                <span class="badge"><span class="badge-icon">🤖</span> Agent-Optimized</span>
+            </div>
+        </section>
+
+        <!-- Main App Container -->
+        <div class="app-container">
+            <!-- Left Panel: Input -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <span class="panel-icon">📹</span>
+                        Input Video
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <!-- Upload Zone -->
+                    <div class="upload-zone" id="uploadZone">
+                        <div class="upload-icon">📁</div>
+                        <h3>Drop your animation video here</h3>
+                        <p>MP4, WebM, MOV up to 100MB</p>
+                        <span class="or">or click to browse</span>
+                        <input type="file" id="fileInput" accept="video/*" style="display: none;">
+                    </div>
+
+                    <!-- Video Preview (Hidden by default) -->
+                    <div class="video-preview" id="videoPreview">
+                        <video id="previewVideo" controls muted loop></video>
+                        <div class="video-info">
+                            <div class="video-info-grid">
+                                <div>
+                                    <div class="video-info-label">Duration</div>
+                                    <div class="video-info-value" id="videoDuration">0.0s</div>
+                                </div>
+                                <div>
+                                    <div class="video-info-label">Resolution</div>
+                                    <div class="video-info-value" id="videoResolution">--</div>
+                                </div>
+                                <div>
+                                    <div class="video-info-label">Size</div>
+                                    <div class="video-info-value" id="videoSize">0 MB</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Options -->
+                    <div class="options-grid">
+                        <div class="option-group">
+                            <label>Output Format</label>
+                            <div class="format-selector" id="formatSelector">
+                                <div class="format-option active" data-format="natural">
+                                    <div class="format-option-icon">📝</div>
+                                    <div class="format-option-label">Natural Language</div>
+                                </div>
+                                <div class="format-option" data-format="css">
+                                    <div class="format-option-icon">🎨</div>
+                                    <div class="format-option-label">CSS Keyframes</div>
+                                </div>
+                                <div class="format-option" data-format="gsap">
+                                    <div class="format-option-icon">⚡</div>
+                                    <div class="format-option-label">GSAP Timeline</div>
+                                </div>
+                                <div class="format-option" data-format="framer">
+                                    <div class="format-option-icon">🔮</div>
+                                    <div class="format-option-label">Framer Motion</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="option-group">
+                            <label>Analysis Quality</label>
+                            <select id="qualitySelect">
+                                <option value="fast">⚡ Fast (Gemini 3 Flash)</option>
+                                <option value="balanced" selected>🎯 Balanced (gemini 3 Flash)</option>
+                                <option value="precise">🧠 Precise (gemini 3 Pro)</option>
+                                <option value="openai">🔮 OpenAI (gpt-5.2)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Analyze Button -->
+                    <button class="analyze-btn" id="analyzeBtn" disabled>
+                        <span>✨</span>
+                        <span>Analyze Animation</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Panel: Output -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <span class="panel-icon">📋</span>
+                        Animation Instructions
+                    </div>
+                </div>
+                
+                <div class="output-tabs">
+                    <button class="output-tab active" data-tab="code">Code</button>
+                    <button class="output-tab" data-tab="overview">Overview</button>
+                    <button class="output-tab" data-tab="timing">Timing</button>
+                </div>
+
+                <div class="panel-content">
+                    <!-- Empty State -->
+                    <div class="empty-state" id="emptyState">
+                        <div class="empty-state-icon">🎯</div>
+                        <h3>Ready to analyze</h3>
+                        <p>Upload a video to generate animation instructions</p>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div class="loading-state" id="loadingState">
+                        <div class="loading-spinner"></div>
+                        <p>Analyzing your animation...</p>
+                        <div class="loading-steps">
+                            <div class="loading-step complete" id="step1">
+                                <div class="step-indicator">✓</div>
+                                <span>Video uploaded</span>
+                            </div>
+                            <div class="loading-step active" id="step2">
+                                <div class="step-indicator">2</div>
+                                <span>Extracting frames</span>
+                            </div>
+                            <div class="loading-step" id="step3">
+                                <div class="step-indicator">3</div>
+                                <span>AI analysis</span>
+                            </div>
+                            <div class="loading-step" id="step4">
+                                <div class="step-indicator">4</div>
+                                <span>Generating code</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Code Output -->
+                    <div class="code-output hidden" id="codeOutput">
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span id="codeLanguage">Natural Language</span>
+                                <div class="code-actions">
+                                    <button class="code-action-btn" id="copyBtn">
+                                        <span>📋</span> Copy
+                                    </button>
+                                    <button class="code-action-btn" id="downloadBtn">
+                                        <span>⬇️</span> Download
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="code-content">
+<pre id="codeContent"><span class="comment">/* Animation specification will appear here */</span>
+
+<span class="keyword">**Animation Overview:**</span>
+A card element slides in from the bottom with a fade-in effect,
+using spring physics for a natural feel.
+
+<span class="keyword">**Elements:**</span>
+<span class="property">1. Card Container</span>
+   <span class="string">- Initial state:</span> translateY(100%), opacity: 0, scale: 0.95
+   <span class="string">- Final state:</span> translateY(0%), opacity: 1, scale: 1
+   <span class="string">- Motion:</span> Vertical slide with spring easing
+
+<span class="keyword">**Timing:**</span>
+<span class="property">- Total duration:</span> <span class="number">0.6s</span>
+<span class="property">- Easing:</span> cubic-bezier(0.34, 1.56, 0.64, 1)
+<span class="property">- Delay:</span> <span class="number">0.1s</span>
+
+<span class="keyword">**Keyframes:**</span>
+<span class="value">0%:</span>   translateY(100%), opacity: 0, scale: 0.95
+<span class="value">70%:</span>  translateY(-5%), opacity: 1, scale: 1.02
+<span class="value">100%:</span> translateY(0%), opacity: 1, scale: 1
+
+<span class="keyword">**Implementation Notes:**</span>
+- Use transform for GPU acceleration
+- Consider reduced-motion media query
+- Shadow can animate with scale for depth</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- How It Works Section -->
+        <section class="how-it-works">
+            <h2>How It Works</h2>
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <div class="step-icon">📹</div>
+                    <h3>Upload Video</h3>
+                    <p>Drop any animation video - screen recordings, prototypes, or references</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <div class="step-icon">🔍</div>
+                    <h3>AI Analysis</h3>
+                    <p>Gemini 3/2.5 or gpt-5.2 extracts motion patterns, timing, and easing curves</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <div class="step-icon">📋</div>
+                    <h3>Get Instructions</h3>
+                    <p>Receive precise specs in your preferred format</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">4</div>
+                    <div class="step-icon">🚀</div>
+                    <h3>Paste & Build</h3>
+                    <p>Copy to Claude Code, Cursor, or any AI coding agent</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>Built for developers who want their AI agents to understand animations.</p>
+        <p style="margin-top: 0.5rem;">
+            <a href="#">Documentation</a> · <a href="#">API</a> · <a href="#">Pricing</a>
+        </p>
+    </footer>
+
+    <script>
+        // DOM Elements
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const videoPreview = document.getElementById('videoPreview');
+        const previewVideo = document.getElementById('previewVideo');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const formatSelector = document.getElementById('formatSelector');
+        const emptyState = document.getElementById('emptyState');
+        const loadingState = document.getElementById('loadingState');
+        const codeOutput = document.getElementById('codeOutput');
+        const copyBtn = document.getElementById('copyBtn');
+
+        let selectedFormat = 'natural';
+        let videoFile = null;
+
+        // Upload Zone Events
+        uploadZone.addEventListener('click', () => fileInput.click());
+        
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('video/')) {
+                handleVideoUpload(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleVideoUpload(e.target.files[0]);
+            }
+        });
+
+        // Handle Video Upload
+        function handleVideoUpload(file) {
+            videoFile = file;
+            const url = URL.createObjectURL(file);
+            previewVideo.src = url;
+            
+            previewVideo.onloadedmetadata = () => {
+                document.getElementById('videoDuration').textContent = 
+                    previewVideo.duration.toFixed(1) + 's';
+                document.getElementById('videoResolution').textContent = 
+                    previewVideo.videoWidth + '×' + previewVideo.videoHeight;
+                document.getElementById('videoSize').textContent = 
+                    (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+            };
+
+            uploadZone.style.display = 'none';
+            videoPreview.classList.add('active');
+            analyzeBtn.disabled = false;
+        }
+
+        // Format Selection
+        formatSelector.querySelectorAll('.format-option').forEach(option => {
+            option.addEventListener('click', () => {
+                formatSelector.querySelectorAll('.format-option').forEach(o => 
+                    o.classList.remove('active'));
+                option.classList.add('active');
+                selectedFormat = option.dataset.format;
+            });
+        });
+
+        // Tab Switching
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => 
+                    t.classList.remove('active'));
+                tab.classList.add('active');
+            });
+        });
+
+        // Analyze Button
+        analyzeBtn.addEventListener('click', () => {
+            if (!videoFile) return;
+            
+            // Show loading state
+            emptyState.classList.add('hidden');
+            codeOutput.classList.add('hidden');
+            loadingState.classList.add('active');
+            analyzeBtn.disabled = true;
+            analyzeBtn.classList.add('loading');
+
+            // Simulate processing steps
+            setTimeout(() => {
+                document.getElementById('step2').classList.remove('active');
+                document.getElementById('step2').classList.add('complete');
+                document.getElementById('step2').querySelector('.step-indicator').textContent = '✓';
+                document.getElementById('step3').classList.add('active');
+            }, 1000);
+
+            setTimeout(() => {
+                document.getElementById('step3').classList.remove('active');
+                document.getElementById('step3').classList.add('complete');
+                document.getElementById('step3').querySelector('.step-indicator').textContent = '✓';
+                document.getElementById('step4').classList.add('active');
+            }, 2500);
+
+            setTimeout(() => {
+                document.getElementById('step4').classList.remove('active');
+                document.getElementById('step4').classList.add('complete');
+                document.getElementById('step4').querySelector('.step-indicator').textContent = '✓';
+                
+                // Show results
+                loadingState.classList.remove('active');
+                codeOutput.classList.remove('hidden');
+                analyzeBtn.disabled = false;
+                analyzeBtn.classList.remove('loading');
+                
+                // Update code language label
+                const labels = {
+                    natural: 'Natural Language',
+                    css: 'CSS Keyframes',
+                    gsap: 'GSAP Timeline',
+                    framer: 'Framer Motion JSX'
+                };
+                document.getElementById('codeLanguage').textContent = labels[selectedFormat];
+            }, 3500);
+        });
+
+        // Copy Button
+        copyBtn.addEventListener('click', () => {
+            const code = document.getElementById('codeContent').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                copyBtn.innerHTML = '<span>✓</span> Copied!';
+                setTimeout(() => {
+                    copyBtn.innerHTML = '<span>📋</span> Copy';
+                }, 2000);
+            });
+        });
+    </script>
+</body>
+</html>

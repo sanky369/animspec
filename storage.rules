@@ -1,0 +1,29 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ========================================
+    // Frame Images
+    // ========================================
+    // Stored at: frames/{userId}/{filename}.jpg
+    // - Written by server (Admin SDK) - bypasses rules
+    // - Made public via file.makePublic() for reading
+    // ========================================
+    match /frames/{userId}/{fileName} {
+      // Allow public read access (files are made public by server)
+      allow read: if true;
+
+      // Client-side writes are disabled
+      // All uploads go through Admin SDK which bypasses these rules
+      allow write: if false;
+    }
+
+    // ========================================
+    // Default: Deny all other access
+    // ========================================
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
