@@ -1,0 +1,88 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if user owns the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ========================================
+    // Profiles Collection
+    // ========================================
+    match /profiles/{userId} {
+      // Users can read their own profile
+      allow read: if isOwner(userId);
+
+      // Users can create their own profile (on signup)
+      allow create: if isOwner(userId) &&
+        request.resource.data.keys().hasAll(['id', 'email', 'creditsBalance']) &&
+        request.resource.data.creditsBalance == 20; // Default free credits
+
+      // Users can update limited fields on their own profile
+      // Credit balance changes must go through server (admin SDK)
+      allow update: if isOwner(userId) &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'creditsBalance',
+          'isPaidUser',
+          'hasUsedFreeTrial'
+        ]);
+
+      // Users cannot delete their profile (admin only)
+      allow delete: if false;
+    }
+
+    // ========================================
+    // Analyses Collection
+    // ========================================
+    match /analyses/{analysisId} {
+      // Users can read their own analyses
+      allow read: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid;
+
+      // Analyses are created by server only (admin SDK)
+      // This ensures credits are properly deducted
+      allow create: if false;
+
+      // Analyses cannot be updated or deleted by users
+      allow update, delete: if false;
+    }
+
+    // ========================================
+    // Credit Transactions Collection
+    // ========================================
+    match /credit_transactions/{transactionId} {
+      // Users can read their own transactions
+      allow read: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid;
+
+      // Transactions are created by server only (admin SDK)
+      allow create, update, delete: if false;
+    }
+
+    // ========================================
+    // Purchases Collection
+    // ========================================
+    match /purchases/{purchaseId} {
+      // Users can read their own purchases
+      allow read: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid;
+
+      // Purchases are created by server only (webhook handler)
+      allow create, update, delete: if false;
+    }
+
+    // ========================================
+    // Default: Deny all other access
+    // ========================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
