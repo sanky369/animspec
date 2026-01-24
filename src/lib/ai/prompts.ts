@@ -455,239 +455,238 @@ const containerVariants: Variants = {
 IMPORTANT: Include exact hex colors (#RRGGBB), precise shadow values, typography properties, and all micro-interactions.`,
 
   remotion: `
-## OUTPUT FORMAT: Remotion Video Specification (for AI Coding Agents)
+## OUTPUT FORMAT: Remotion Video Template (for AI Coding Agents)
 
-Generate a detailed specification document optimized for AI coding agents (Claude Code, Cursor) using the /remotion-script-writer skill to create Remotion video projects.
+Analyze this video and extract a **reusable animation template** that captures:
+1. **Animation Structure** - Scene breakdown, timing, transitions
+2. **Motion Patterns** - How elements animate, easing styles, camera movements
+3. **Visual Style Guide** - Exact colors, typography, shadows, and styling
+
+This template allows users to recreate the same animation style for their own products using the \`/remotion-script-writer\` skill in Claude Code.
 
 ---
 
-### VIDEO COMPOSITION SETTINGS
+### VIDEO TEMPLATE OVERVIEW
 
-**Composition Config:**
-- Width: [Use video width, e.g., 1920]px
-- Height: [Use video height, e.g., 1080]px
-- FPS: [30 recommended for web, 60 for smooth motion, 24 for cinematic]
-- Duration: [Total frames = duration_seconds x FPS, e.g., 3s x 30fps = 90 frames]
-- Background: [Exact hex color, e.g., #0F0F0F]
+**Video Type:** [Identify the category]
+- Product Demo / App Walkthrough / Feature Showcase / Explainer / Testimonial / Launch Announcement / Social Ad / Tutorial / Comparison / Brand Story
 
-\`\`\`tsx
-// Composition setup reference
-<Composition
-  id="AnimationName"
-  component={MainVideo}
-  durationInFrames={[calculated_frames]}
-  fps={30}
-  width={[video_width]}
-  height={[video_height]}
-/>
-\`\`\`
+**Overall Style:** [Describe the visual aesthetic]
+- e.g., "Modern SaaS with floating UI elements", "Cinematic product reveal with dramatic lighting", "Playful and bouncy with bold colors", "Minimalist with subtle movements"
+
+**Mood/Energy:** [Characterize the feel]
+- Professional / Playful / Dramatic / Elegant / Energetic / Calm / Techy / Warm
+
+**Target Duration:** [X] seconds
+
+**Aspect Ratio:** [16:9 / 9:16 / 1:1 / 4:5] - [Landscape / Portrait / Square]
+
+---
+
+### SCENE BREAKDOWN
+
+Break down the video into distinct scenes/acts. For each scene:
+
+**Scene [N]: [Scene Name]**
+- **Duration:** [X-Y seconds]
+- **Purpose:** [What this scene accomplishes - intro, reveal, highlight, CTA, etc.]
+- **What's Shown:** [Describe what appears on screen conceptually]
+- **Key Motion:** [Primary animation happening]
+- **Transition In:** [How this scene enters - cut, fade, slide, zoom, etc.]
+- **Transition Out:** [How this scene exits]
+
+Example format:
+| Scene | Time | Purpose | Key Elements | Motion Style |
+|-------|------|---------|--------------|--------------|
+| 1 | 0-2s | Hook/Intro | Logo, tagline | Fade in with scale |
+| 2 | 2-5s | Product Reveal | Hero product shot | Zoom in, float up |
+| 3 | 5-8s | Feature Highlights | UI callouts, icons | Stagger in from sides |
+| 4 | 8-10s | CTA | Action text, button | Pulse, glow effect |
+
+---
+
+### CAMERA & PERSPECTIVE
+
+**Camera Movement Patterns:**
+- Static / Pan (L→R, R→L) / Tilt (Up, Down) / Zoom (In, Out) / Orbit / Dolly / Parallax layers
+- Describe the primary camera behavior and any notable movements
+
+**Perspective Style:**
+- Flat 2D / Isometric / 3D with depth / Floating layers / Parallax scrolling
+
+**Depth & Layering:**
+- How many visual layers? (foreground, midground, background)
+- How is depth created? (shadows, blur, scale, overlap)
+
+---
+
+### MOTION STYLE GUIDE
+
+**Animation Character:** [Describe the overall motion feel]
+- Smooth & elegant / Snappy & quick / Bouncy & playful / Cinematic & slow / Mechanical & precise
+
+**Primary Easing Pattern:**
+- ease-out (fast start, smooth stop) - feels responsive
+- ease-in-out (smooth both ends) - feels polished
+- spring/bounce (overshoot) - feels playful
+- linear (constant) - feels mechanical
+
+**Timing Rhythm:**
+- Fast cuts (< 1s per element) / Medium pace (1-2s) / Slow & deliberate (> 2s)
+- Describe the pacing pattern (e.g., "Slow build up, quick hits in middle, slow close")
+
+**Stagger Patterns:**
+- How do multiple elements animate in? (all at once, sequential, wave, random)
+- Typical stagger delay between elements
+
+**Signature Motions:** [List recurring animation patterns]
+- e.g., "Elements float up while fading in", "Scale bounce on appearance", "Slide in from edges", "Rotate while scaling"
+
+---
+
+### ELEMENT ANIMATION PATTERNS
+
+For each type of element that appears, describe HOW it animates (not exact values):
+
+**Text Elements:**
+- Entrance: [fade in / slide up / typewriter / word-by-word / blur in]
+- Emphasis: [scale pulse / color shift / underline draw / glow]
+- Exit: [fade out / slide away / blur out]
+
+**Product/Hero Images:**
+- Entrance: [zoom in / float up / 3D rotate in / reveal wipe]
+- Behavior: [subtle float / rotate slowly / parallax on scroll]
+- Exit: [zoom out / fade / slide]
+
+**UI Components (buttons, cards, screens):**
+- Entrance: [pop in / slide from edge / scale up / flip in]
+- Hover/Focus states: [lift with shadow / scale slightly / glow]
+- Exit: [reverse of entrance / fade]
+
+**Icons/Graphics:**
+- Entrance: [bounce in / draw on / fade with scale / rotate in]
+- Behavior: [pulse / spin / wiggle]
+
+**Backgrounds:**
+- Behavior: [gradient shift / particle movement / subtle zoom / color transition]
 
 ---
 
 ### VISUAL STYLE GUIDE
 
-Extract ALL visual properties with exact values:
+Extract the exact visual properties from the video:
 
 **Color Palette:**
 | Role | Hex Code | Usage |
 |------|----------|-------|
-| Primary | #[XXXXXX] | [Main accent, buttons, etc.] |
-| Secondary | #[XXXXXX] | [Supporting elements] |
-| Background | #[XXXXXX] | [Canvas/container background] |
-| Text Primary | #[XXXXXX] | [Headings, body text] |
-| Text Secondary | #[XXXXXX] | [Muted text, captions] |
-| Accent | #[XXXXXX] | [Highlights, hover states] |
+| Primary | #[XXXXXX] | Main accent, CTAs, highlights |
+| Secondary | #[XXXXXX] | Supporting elements |
+| Background | #[XXXXXX] | Canvas/container background |
+| Text Primary | #[XXXXXX] | Headings, important text |
+| Text Secondary | #[XXXXXX] | Body text, captions |
+| Accent | #[XXXXXX] | Special highlights, hover states |
+| [Additional colors as needed] | #[XXXXXX] | [Usage] |
+
+**Color Style:**
+- Mode: Dark / Light / Mixed
+- Character: Vibrant / Muted / Monochromatic / Gradient-heavy
+- Background treatment: Solid / Gradient / Textured / Animated
 
 **Typography:**
-- Primary Font: [Font family, e.g., "Inter", "SF Pro Display"]
-- Heading Size: [e.g., 48px]
-- Heading Weight: [e.g., 700]
-- Body Size: [e.g., 18px]
-- Body Weight: [e.g., 400]
-- Letter Spacing: [e.g., -0.02em for headings, 0 for body]
-- Line Height: [e.g., 1.2 for headings, 1.5 for body]
+| Element | Font Style | Size | Weight | Color | Letter Spacing |
+|---------|------------|------|--------|-------|----------------|
+| Headline | [e.g., Modern sans-serif] | [e.g., 48px] | [e.g., 700] | #[XXXXXX] | [e.g., -0.02em] |
+| Subheadline | [style] | [size] | [weight] | #[XXXXXX] | [spacing] |
+| Body | [style] | [size] | [weight] | #[XXXXXX] | [spacing] |
+| Caption/Label | [style] | [size] | [weight] | #[XXXXXX] | [spacing] |
 
 **Shadows & Depth:**
 - Elevation Low: [e.g., 0 2px 4px rgba(0,0,0,0.1)]
 - Elevation Medium: [e.g., 0 8px 16px rgba(0,0,0,0.15)]
 - Elevation High: [e.g., 0 16px 32px rgba(0,0,0,0.2)]
+- Glow effects: [if any, e.g., 0 0 20px rgba(59,130,246,0.5)]
 
 **Border Radius:**
-- Small: [e.g., 4px] - buttons, inputs
-- Medium: [e.g., 8px] - cards
-- Large: [e.g., 16px] - modals, containers
-- Full: [e.g., 9999px] - pills, avatars
+- Small elements: [e.g., 4px]
+- Medium elements (cards): [e.g., 8px]
+- Large elements (containers): [e.g., 16px]
+- Pills/badges: [e.g., 9999px]
 
-**Spacing Scale:**
-- xs: [e.g., 4px]
-- sm: [e.g., 8px]
-- md: [e.g., 16px]
-- lg: [e.g., 24px]
-- xl: [e.g., 32px]
-- 2xl: [e.g., 48px]
+**Visual Effects:**
+- Blur: [Background blur values, e.g., backdrop-filter: blur(10px)]
+- Overlays: [Gradient overlays, grain, light leaks]
+- Borders: [Border styles, e.g., 1px solid rgba(255,255,255,0.1)]
 
----
-
-### ANIMATION TIMELINE
-
-Break down the animation into frame-accurate segments:
-
-**Timeline Overview:**
-| Phase | Frames | Time | Description |
-|-------|--------|------|-------------|
-| Phase 1 | 0-[N] | 0-[X]s | [Initial entrance] |
-| Phase 2 | [N]-[M] | [X]-[Y]s | [Main animation] |
-| Phase 3 | [M]-[P] | [Y]-[Z]s | [Secondary elements] |
-| Phase 4 | [P]-[end] | [Z]-[total]s | [Final state / exit] |
+**UI Style (if showing interfaces):**
+- Style: Glassmorphism / Neumorphism / Flat / Material / Skeuomorphic
+- Card treatment: [describe card styling]
+- Button styling: [describe button appearance]
 
 ---
 
-### ELEMENT BREAKDOWN
+### AUDIO/RHYTHM SYNC (if applicable)
 
-For each animated element, provide complete specifications:
-
-**Element: [Element Name]**
-- Type: [Text / Shape / Image / Container / Icon]
-- Layer Order: [z-index or stacking order]
-- Initial State (Frame 0):
-  - Position: { x: [px], y: [px] }
-  - Scale: [1]
-  - Opacity: [0-1]
-  - Rotation: [degrees]
-  - Background: [hex]
-  - Border Radius: [px]
-  - Shadow: [full shadow value]
-- Final State (Frame [N]):
-  - Position: { x: [px], y: [px] }
-  - Scale: [value]
-  - Opacity: [0-1]
-  - Rotation: [degrees]
-  - Background: [hex]
-  - Border Radius: [px]
-  - Shadow: [full shadow value]
-- Animation:
-  - Start Frame: [N]
-  - End Frame: [N]
-  - Easing: [e.g., "easeInOutCubic" or spring config]
-  - Properties Animated: [list all properties that change]
-
-\`\`\`tsx
-// Remotion implementation hint for this element
-const opacity = interpolate(
-  frame,
-  [startFrame, endFrame],
-  [0, 1],
-  { easing: Easing.inOut(Easing.cubic) }
-);
-
-// For spring animations:
-const scale = spring({
-  frame: frame - startFrame,
-  fps,
-  config: { damping: 20, stiffness: 200, mass: 1 },
-});
-\`\`\`
-
-[Repeat for each element...]
+**Pacing Notes:**
+- Are animations synced to beats or rhythm?
+- Key moments that would align with audio hits
+- Overall energy curve (builds up, stays steady, peaks at end)
 
 ---
 
-### COMPONENT STRUCTURE
+### TEMPLATE SUMMARY FOR AI AGENT
 
-Suggest Remotion component organization:
+Provide a concise summary that an AI agent can use to recreate this style:
 
 \`\`\`
-src/
-├── Root.tsx              // Composition registry
-├── Video.tsx             // Main composition
-├── components/
-│   ├── [Element1].tsx    // Individual animated elements
-│   ├── [Element2].tsx
-│   └── ...
-├── styles/
-│   └── theme.ts          // Color palette, typography, spacing
-└── lib/
-    └── animations.ts     // Reusable animation utilities
-\`\`\`
+VIDEO TEMPLATE: [Name this template style]
 
-**Sequence Structure:**
-\`\`\`tsx
-export const MainVideo: React.FC = () => {
-  const frame = useCurrentFrame();
-  const { fps, durationInFrames, width, height } = useVideoConfig();
+TYPE: [Video category]
+DURATION: [X] seconds
+ASPECT: [Ratio]
 
-  return (
-    <AbsoluteFill style={{ backgroundColor: '[background_color]' }}>
-      <Sequence from={0} durationInFrames={[N]}>
-        {/* Phase 1: [Description] */}
-        <Element1 />
-      </Sequence>
-      <Sequence from={[frame]} durationInFrames={[N]}>
-        {/* Phase 2: [Description] */}
-        <Element2 />
-      </Sequence>
-      {/* Continue for all phases... */}
-    </AbsoluteFill>
-  );
-};
+STRUCTURE:
+1. [Scene 1 - Xs] - [Purpose] - [Key motion]
+2. [Scene 2 - Xs] - [Purpose] - [Key motion]
+3. [Scene 3 - Xs] - [Purpose] - [Key motion]
+...
+
+MOTION STYLE: [Character] with [easing] easing
+SIGNATURE MOVES: [List 2-3 key animation patterns]
+VISUAL VIBE: [2-3 word description]
+
+CAMERA: [Primary camera behavior]
+TRANSITIONS: [How scenes connect]
+PACING: [Rhythm description]
+
+COLORS: Primary: #[XXX] | Secondary: #[XXX] | Background: #[XXX] | Accent: #[XXX]
+TYPOGRAPHY: [Font style] | Headlines: [weight] | Body: [weight]
 \`\`\`
 
 ---
 
-### REMOTION-SPECIFIC IMPLEMENTATION NOTES
+### IMPLEMENTATION GUIDANCE
 
-**Recommended Patterns:**
-1. Use \`useCurrentFrame()\` and \`useVideoConfig()\` for frame-based animations
-2. Prefer \`interpolate()\` for simple transitions with exact control
-3. Use \`spring()\` for physics-based animations with overshoot/bounce
-4. Wrap elements in \`<Sequence>\` for timeline control and delayed appearance
-5. Use \`<AbsoluteFill>\` for full-screen containers
-6. Extract animation configs to reusable functions for consistency
+**To recreate this template for your own product:**
 
-**Easing Reference:**
-- Linear: \`Easing.linear\`
-- Ease In: \`Easing.in(Easing.cubic)\` or \`Easing.bezier(0.42, 0, 1, 1)\`
-- Ease Out: \`Easing.out(Easing.cubic)\` or \`Easing.bezier(0, 0, 0.58, 1)\`
-- Ease In-Out: \`Easing.inOut(Easing.cubic)\`
-- Spring: Use \`spring()\` with damping/stiffness/mass config
+1. Replace the product/content shown with your own assets
+2. Keep the same scene structure and timing
+3. Match the motion style and easing patterns
+4. Maintain the same visual hierarchy and emphasis points
+5. Use similar transition types between scenes
+6. Preserve the overall pacing and rhythm
 
-**Performance Tips:**
-- Avoid animating \`filter\` properties when possible (CPU intensive)
-- Use \`transform\` (scale, translate, rotate) over position/size properties
-- Pre-calculate complex values outside render when possible
-- Use \`React.memo\` for static child components
+**Remotion Components Needed:**
+- List the types of components to build (e.g., HeroReveal, FeatureCallout, TextAnimation, CTASection)
+
+**Key Remotion Features to Use:**
+- \`<Sequence>\` for scene timing
+- \`spring()\` or \`interpolate()\` based on motion style
+- \`<AbsoluteFill>\` with layered elements for depth
+- [Any other relevant Remotion patterns based on the template]
 
 ---
 
-### IMPLEMENTATION CHECKLIST
-
-For AI agents implementing this specification:
-
-- [ ] Create Remotion project with \`npx create-video@latest\`
-- [ ] Set up composition with correct dimensions and frame count
-- [ ] Create theme file with extracted color palette and typography
-- [ ] Implement each animated element as a separate component
-- [ ] Wire up frame-based animations with interpolate/spring
-- [ ] Organize sequences for timeline control
-- [ ] Add any required assets (fonts, images)
-- [ ] Test render with \`npx remotion preview\`
-- [ ] Export final video with \`npx remotion render\`
-
----
-
-### RAW ANIMATION DATA
-
-**Complete Property List (condensed for agent reference):**
-
-| Element | Property | Start Frame | End Frame | From | To | Easing |
-|---------|----------|-------------|-----------|------|-----|--------|
-| [name] | [prop] | [N] | [M] | [value] | [value] | [easing] |
-
-[List ALL animated properties in this table format for easy parsing by AI agents]
-
----
-
-IMPORTANT: Be exhaustive in extracting visual properties. Include EVERY color (exact hex), shadow value, spacing measurement, and motion detail. The AI agent relies on this specification to recreate the animation exactly. Do not use vague descriptions - use precise values only.`,
+IMPORTANT: Extract BOTH the reusable template structure AND exact visual properties. The template (scene structure, motion patterns, timing) enables recreation of the animation style for different content. The visual style guide (exact hex colors, typography, shadows) provides the precise design language. Together, these allow AI agents to recreate this video's look and feel for any product.`,
 };
 
 export function buildAnalysisPrompt(

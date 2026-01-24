@@ -1,11 +1,44 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { ZapIcon, ClipboardIcon, CpuIcon, PlayIcon } from '@/components/ui/icons';
+import { useEffect, useState, useRef } from 'react';
+import { ZapIcon, ClipboardIcon, CpuIcon } from '@/components/ui/icons';
 
 export function HeroSection() {
   const [timecode, setTimecode] = useState('00:00:00:00');
+  const playheadRef = useRef<HTMLDivElement>(null);
+  const videoLayerRef = useRef<HTMLDivElement>(null);
 
+  // Synced animation for playhead and video clip
+  useEffect(() => {
+    let animationId: number;
+    const duration = 4000; // 4 seconds
+    let startTime: number | null = null;
+
+    const animate = (currentTime: number) => {
+      if (!startTime) startTime = currentTime;
+      const elapsed = (currentTime - startTime) % duration;
+      const progress = elapsed / duration;
+
+      // Sine wave for smooth back-and-forth motion
+      const sineProgress = Math.sin(progress * Math.PI * 2 - Math.PI / 2) * 0.5 + 0.5;
+      const pos = 10 + sineProgress * 80; // 10% to 90%
+
+      if (playheadRef.current) {
+        playheadRef.current.style.left = `${pos}%`;
+      }
+      if (videoLayerRef.current) {
+        // Clip from right: video visible on LEFT of playhead, code on RIGHT
+        videoLayerRef.current.style.clipPath = `inset(0 ${100 - pos}% 0 0)`;
+      }
+
+      animationId = requestAnimationFrame(animate);
+    };
+
+    animationId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationId);
+  }, []);
+
+  // Timecode animation
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date();
@@ -36,7 +69,7 @@ export function HeroSection() {
 
           <p className="hero-subtitle text-balance">
             See an animation you love? Record it, upload it, get agent-ready prompts.
-            Instant specs for Claude Code, Cursor, and AI coding agents.
+            Instant specs for Claude Code, Codex, and other AI coding agents.
           </p>
 
           <div className="hero-features">
@@ -57,10 +90,29 @@ export function HeroSection() {
 
         <div className="hero-visual animate-slide-in-right">
           <div className="hero-frame">
-            <div className="hero-frame-content">
-              <PlayIcon className="w-12 h-12 text-text-subtle opacity-30" />
+            <div className="hero-frame-content hero-reveal">
+              {/* Video layer (before) - controlled by JS */}
+              <div ref={videoLayerRef} className="hero-layer hero-layer-video">
+                <img
+                  src="/hero-animation.jpg"
+                  alt="UI Animation"
+                  className="hero-video-image"
+                />
+              </div>
+              {/* Code layer (after) */}
+              <div className="hero-layer hero-layer-code">
+                <div className="hero-code-content">
+                  <code className="hero-prompt-text">
+                    <span className="text-accent-primary">slideIn</span> from left{'\n'}
+                    <span className="text-text-subtle">duration:</span> 0.4s{'\n'}
+                    <span className="text-text-subtle">easing:</span> cubic-bezier(0.4, 0, 0.2, 1){'\n'}
+                    <span className="text-text-subtle">delay:</span> 0.1s{'\n'}
+                    <span className="text-text-subtle">transform:</span> translateX(-100%) → translateX(0)
+                  </code>
+                </div>
+              </div>
             </div>
-            <div className="hero-playhead" />
+            <div ref={playheadRef} className="hero-playhead" />
           </div>
           <div className="hero-timecode">{timecode}</div>
         </div>

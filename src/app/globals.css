@@ -475,20 +475,96 @@ body {
   justify-content: center;
 }
 
-.hero-playhead {
-  position: absolute;
-  left: 30%;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: var(--accent-primary);
-  box-shadow: 0 0 10px var(--accent-primary);
-  animation: playhead 3s ease-in-out infinite;
+/* Before/After Reveal Effect */
+.hero-frame-content.hero-reveal {
+  overflow: hidden;
+  padding: 0;
 }
 
-@keyframes playhead {
-  0%, 100% { left: 20%; }
-  50% { left: 75%; }
+.hero-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Code layer - bottom, always visible */
+.hero-layer-code {
+  z-index: 1;
+  background: var(--bg-base);
+}
+
+/* Video layer - top, clips to reveal code on right (JS controlled) */
+.hero-layer-video {
+  z-index: 2;
+  clip-path: inset(0 90% 0 0);
+}
+
+.hero-video-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero-code-content {
+  padding: 20px 28px;
+  text-align: left;
+}
+
+.hero-prompt-text {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  line-height: 2;
+  color: var(--text-secondary);
+  white-space: pre-line;
+  display: block;
+}
+
+/* Playhead scanner (JS controlled) */
+.hero-playhead {
+  position: absolute;
+  left: 10%;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent-primary);
+  box-shadow:
+    0 0 20px var(--accent-primary),
+    0 0 40px var(--accent-primary),
+    -5px 0 15px rgba(255, 140, 0, 0.4),
+    5px 0 15px rgba(255, 140, 0, 0.4);
+  z-index: 10;
+}
+
+.hero-playhead::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -30px;
+  width: 60px;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.15), transparent);
+}
+
+/* Synced animations - playhead and video clip move together */
+@keyframes playhead-scan {
+  0%, 100% { left: 10%; }
+  50% { left: 90%; }
+}
+
+/* Video clips from left as playhead moves right - reveals code on left side */
+@keyframes wipe-video {
+  0%, 100% {
+    clip-path: inset(0 0 0 10%);
+  }
+  50% {
+    clip-path: inset(0 0 0 90%);
+  }
 }
 
 .hero-timecode {

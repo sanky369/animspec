@@ -42,11 +42,11 @@ export const FORMAT_OPTIONS: FormatOption[] = [
   },
   {
     id: 'remotion',
-    label: 'Remotion',
+    label: 'Remotion Template',
     icon: '🎬',
     language: 'markdown',
-    description: 'Structured specs for AI agents to generate Remotion videos',
-    bestFor: 'Claude Code with /remotion-script-writer skill',
+    description: 'Extract animation style & structure as a reusable template',
+    bestFor: 'Creating similar videos for your own product',
   },
 ];
 

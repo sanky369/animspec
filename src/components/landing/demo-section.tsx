@@ -97,7 +97,7 @@ export function DemoSection() {
         <span className="section-eyebrow">Try It</span>
         <h2 className="section-title">See It In Action</h2>
         <p className="section-subtitle">
-          Upload an animation video and get instant analysis
+          Upload a UI animation or product demo video and get instant prompts
           {!user && <span className="text-text-subtle"> — one free demo per device</span>}
         </p>
       </div>

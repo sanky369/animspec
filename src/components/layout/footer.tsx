@@ -33,13 +33,15 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Company links */}
+          {/* Contact */}
           <div className="footer-column">
-            <h4 className="footer-column-title">Company</h4>
-            <ul className="footer-links">
-              <li><a href="/about">About</a></li>
-              <li><a href="/contact">Contact</a></li>
-            </ul>
+            <h4 className="footer-column-title">Contact</h4>
+            <p className="footer-tagline">
+              Any questions? Write a mail to{' '}
+              <a href="mailto:team@tinkerbrains.com" className="text-white hover:underline">
+                team@tinkerbrains.com
+              </a>
+            </p>
           </div>
 
           {/* Legal links */}
