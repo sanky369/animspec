@@ -104,7 +104,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (firebaseUser) {
       const token = await firebaseUser.getIdToken();
       // Set a session cookie that expires in 7 days
-      document.cookie = `__session=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+      // Include Secure flag for HTTPS (production)
+      const isSecure = window.location.protocol === 'https:';
+      document.cookie = `__session=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax${isSecure ? '; Secure' : ''}`;
     } else {
       // Clear the session cookie
       document.cookie = '__session=; path=/; max-age=0';
