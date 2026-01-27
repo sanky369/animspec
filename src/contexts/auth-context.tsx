@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import {
   User,
   onAuthStateChanged,
@@ -32,6 +32,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Ref for promise resolver - avoids stale closure in useEffect
+  const authReadyResolverRef = useRef<(() => void) | null>(null);
 
   // Fetch or create user profile
   const fetchOrCreateProfile = async (firebaseUser: User): Promise<UserProfile | null> => {
@@ -134,25 +137,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       setIsLoading(false);
+
+      // Resolve any pending auth wait promise (for sign-in flows)
+      if (authReadyResolverRef.current) {
+        authReadyResolverRef.current();
+        authReadyResolverRef.current = null;
+      }
     });
 
     return () => unsubscribe();
   }, []);
 
+  // Helper to wait for auth state to be ready after sign-in
+  const waitForAuthReady = (): Promise<void> => {
+    return new Promise((resolve) => {
+      authReadyResolverRef.current = resolve;
+    });
+  };
+
   const signInWithEmail = async (email: string, password: string) => {
     const auth = getAuthInstance();
+    const authReadyPromise = waitForAuthReady();
     await signInWithEmailAndPassword(auth, email, password);
+    await authReadyPromise; // Wait for cookie to be set
   };
 
   const signUpWithEmail = async (email: string, password: string) => {
     const auth = getAuthInstance();
+    const authReadyPromise = waitForAuthReady();
     await createUserWithEmailAndPassword(auth, email, password);
+    await authReadyPromise; // Wait for cookie to be set
   };
 
   const signInWithGoogle = async () => {
     const auth = getAuthInstance();
     const provider = getGoogleProvider();
+    const authReadyPromise = waitForAuthReady();
     await signInWithPopup(auth, provider);
+    await authReadyPromise; // Wait for cookie to be set
   };
 
   const signOut = async () => {
