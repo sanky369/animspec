@@ -7,7 +7,7 @@ import { HistoryIcon, PlusIcon } from '@/components/ui/icons';
 import type { Analysis } from '@/types/database';
 
 export default function HistoryPage() {
-  const { user } = useAuth();
+  const { user, refreshToken } = useAuth();
   const [analyses, setAnalyses] = useState<Analysis[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAnalysis, setSelectedAnalysis] = useState<Analysis | null>(null);
@@ -18,6 +18,8 @@ export default function HistoryPage() {
       if (!user) return;
 
       try {
+        // Refresh token before fetching to ensure it's valid
+        await refreshToken();
         const response = await fetch('/api/analyses');
         if (response.ok) {
           const data = await response.json();
@@ -31,7 +33,7 @@ export default function HistoryPage() {
     }
 
     fetchAnalyses();
-  }, [user]);
+  }, [user, refreshToken]);
 
   const handleAnalysisClick = (analysis: Analysis) => {
     // For now, just set the selected analysis

@@ -8,7 +8,7 @@ import { CoinsIcon, CheckIcon, ZapIcon, HistoryIcon } from '@/components/ui/icon
 import { CREDIT_COSTS, PACK_CREDITS, PACK_PRICES, type PackType } from '@/types/database';
 
 export default function AccountPage() {
-  const { profile, refreshProfile } = useAuth();
+  const { profile, refreshProfile, refreshToken } = useAuth();
   const searchParams = useSearchParams();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
@@ -27,6 +27,8 @@ export default function AccountPage() {
   useEffect(() => {
     async function fetchTransactions() {
       try {
+        // Refresh token before fetching to ensure it's valid
+        await refreshToken();
         const response = await fetch('/api/transactions');
         if (response.ok) {
           const data = await response.json();
@@ -38,12 +40,14 @@ export default function AccountPage() {
     }
 
     fetchTransactions();
-  }, []);
+  }, [refreshToken]);
 
   const handleSelectPack = async (packType: PackType) => {
     setIsCheckoutLoading(true);
 
     try {
+      // Refresh token before checkout to ensure it's valid
+      await refreshToken();
       const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

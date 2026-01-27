@@ -13,7 +13,7 @@ import type { AnalysisConfig, VideoMetadata } from '@/types/analysis';
 import { VideoIcon, SparklesIcon } from '@/components/ui/icons';
 
 export default function DashboardPage() {
-  const { profile, refreshProfile } = useAuth();
+  const { profile, refreshProfile, refreshToken } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [config, setConfig] = useState<AnalysisConfig>({
     format: 'natural',
@@ -62,10 +62,12 @@ export default function DashboardPage() {
 
   const handleAnalyze = useCallback(async () => {
     if (!file || !metadata) return;
+    // Refresh token before analysis to ensure it's valid
+    await refreshToken();
     await analyze(file, metadata, config);
     // Refresh profile to update credits after analysis
     await refreshProfile();
-  }, [file, metadata, config, analyze, refreshProfile]);
+  }, [file, metadata, config, analyze, refreshToken, refreshProfile]);
 
   const canAnalyze = file && metadata && !isAnalyzing;
 

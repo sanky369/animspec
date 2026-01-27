@@ -24,6 +24,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
+  refreshToken: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -103,9 +104,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Set session cookie for middleware
-  const setSessionCookie = async (firebaseUser: User | null) => {
+  const setSessionCookie = async (firebaseUser: User | null, forceRefresh = false) => {
     if (firebaseUser) {
-      const token = await firebaseUser.getIdToken();
+      // forceRefresh=true forces a new token from Firebase servers
+      const token = await firebaseUser.getIdToken(forceRefresh);
       // Set a session cookie that expires in 7 days
       // Include Secure flag for HTTPS (production)
       const isSecure = window.location.protocol === 'https:';
@@ -113,6 +115,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       // Clear the session cookie
       document.cookie = '__session=; path=/; max-age=0';
+    }
+  };
+
+  // Refresh the session token (call before API requests to ensure fresh token)
+  const refreshToken = async () => {
+    if (user) {
+      await setSessionCookie(user, true);
     }
   };
 
@@ -147,6 +156,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => unsubscribe();
   }, []);
+
+  // Periodic token refresh - Firebase ID tokens expire after 1 hour
+  // Refresh every 50 minutes to ensure token is always valid
+  useEffect(() => {
+    if (!user) return;
+
+    const refreshInterval = setInterval(async () => {
+      try {
+        await setSessionCookie(user, true);
+        console.log('Session token refreshed');
+      } catch (error) {
+        console.error('Failed to refresh session token:', error);
+      }
+    }, 50 * 60 * 1000); // 50 minutes
+
+    return () => clearInterval(refreshInterval);
+  }, [user]);
 
   // Helper to wait for auth state to be ready after sign-in
   const waitForAuthReady = (): Promise<void> => {
@@ -207,6 +233,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signOut,
         resetPassword,
         refreshProfile,
+        refreshToken,
       }}
     >
       {children}
