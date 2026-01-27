@@ -528,6 +528,7 @@ LEMON_SQUEEZY_API_KEY=your-lemon-squeezy-api-key
 LEMON_SQUEEZY_STORE_ID=your-store-id
 LEMON_SQUEEZY_CREATOR_VARIANT_ID=creator-pack-variant-id
 LEMON_SQUEEZY_PRO_VARIANT_ID=pro-pack-variant-id
+LEMON_SQUEEZY_TEST_MODE=true
 LEMON_SQUEEZY_WEBHOOK_SECRET=your-webhook-secret
 
 # Optional

@@ -60,7 +60,7 @@ export default function AccountPage() {
         window.location.href = data.checkoutUrl;
       } else {
         const error = await response.json();
-        alert(error.message || 'Failed to create checkout session');
+        alert(error.message || error.error || 'Failed to create checkout session');
       }
     } catch (error) {
       console.error('Checkout error:', error);

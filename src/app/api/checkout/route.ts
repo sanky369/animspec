@@ -8,6 +8,7 @@ const LEMON_SQUEEZY_API_KEY = process.env.LEMON_SQUEEZY_API_KEY;
 const LEMON_SQUEEZY_STORE_ID = process.env.LEMON_SQUEEZY_STORE_ID;
 const LEMON_SQUEEZY_CREATOR_VARIANT_ID = process.env.LEMON_SQUEEZY_CREATOR_VARIANT_ID;
 const LEMON_SQUEEZY_PRO_VARIANT_ID = process.env.LEMON_SQUEEZY_PRO_VARIANT_ID;
+const LEMON_SQUEEZY_TEST_MODE = process.env.LEMON_SQUEEZY_TEST_MODE === 'true';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 export async function POST(request: NextRequest) {
@@ -80,6 +81,7 @@ export async function POST(request: NextRequest) {
                   pack_type: packType,
                 },
               },
+              test_mode: LEMON_SQUEEZY_TEST_MODE,
               product_options: {
                 redirect_url: `${APP_URL}/dashboard/account?success=true`,
               },
@@ -104,10 +106,16 @@ export async function POST(request: NextRequest) {
     );
 
     if (!checkoutResponse.ok) {
-      const errorData = await checkoutResponse.json();
+      const errorText = await checkoutResponse.text();
+      let errorData: unknown = errorText;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        // leave errorData as raw text
+      }
       console.error('Lemon Squeezy error:', errorData);
       return NextResponse.json(
-        { error: 'Failed to create checkout session' },
+        { error: 'Failed to create checkout session', lemon: errorData },
         { status: 500 }
       );
     }
