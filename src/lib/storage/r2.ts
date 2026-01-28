@@ -1,5 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { AwsClient } from 'aws4fetch';
 
 // R2 configuration
 const R2_ACCOUNT_ID = process.env.CLOUDFLARE_R2_ACCOUNT_ID;
@@ -7,30 +6,33 @@ const R2_ACCESS_KEY_ID = process.env.CLOUDFLARE_R2_ACCESS_KEY_ID;
 const R2_SECRET_ACCESS_KEY = process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY;
 const R2_BUCKET_NAME = process.env.CLOUDFLARE_R2_BUCKET_NAME || 'animspec-videos';
 
-// Presigned URL expiration (1 hour for uploads)
-const UPLOAD_URL_EXPIRY = 3600;
-// Download URL expiration (1 hour)
-const DOWNLOAD_URL_EXPIRY = 3600;
+// Presigned URL expiration (1 hour)
+const URL_EXPIRY_SECONDS = 3600;
 
-let s3Client: S3Client | null = null;
+let r2Client: AwsClient | null = null;
 
-function getR2Client(): S3Client {
-  if (s3Client) return s3Client;
+function getR2Client(): AwsClient {
+  if (r2Client) return r2Client;
 
-  if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY) {
+  if (!R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY) {
     throw new Error('Cloudflare R2 credentials not configured');
   }
 
-  s3Client = new S3Client({
+  r2Client = new AwsClient({
+    accessKeyId: R2_ACCESS_KEY_ID,
+    secretAccessKey: R2_SECRET_ACCESS_KEY,
     region: 'auto',
-    endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-    credentials: {
-      accessKeyId: R2_ACCESS_KEY_ID,
-      secretAccessKey: R2_SECRET_ACCESS_KEY,
-    },
+    service: 's3',
   });
 
-  return s3Client;
+  return r2Client;
+}
+
+function getR2Endpoint(): string {
+  if (!R2_ACCOUNT_ID) {
+    throw new Error('R2 account ID not configured');
+  }
+  return `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
 }
 
 export function isR2Configured(): boolean {
@@ -39,7 +41,6 @@ export function isR2Configured(): boolean {
 
 /**
  * Generate a presigned URL for uploading a video to R2
- * Objects are auto-deleted after 3 days via R2 lifecycle rules
  */
 export async function getUploadPresignedUrl(
   userId: string,
@@ -48,30 +49,36 @@ export async function getUploadPresignedUrl(
   contentLength: number
 ): Promise<{ uploadUrl: string; objectKey: string }> {
   const client = getR2Client();
-  
-  // Generate unique object key with user context
+  const endpoint = getR2Endpoint();
+
+  // Generate unique object key
   const timestamp = Date.now();
   const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
   const objectKey = `uploads/${userId}/${timestamp}-${sanitizedFileName}`;
 
-  const command = new PutObjectCommand({
-    Bucket: R2_BUCKET_NAME,
-    Key: objectKey,
-    ContentType: contentType,
-    ContentLength: contentLength,
-    // Metadata for tracking
-    Metadata: {
-      'user-id': userId,
-      'upload-time': new Date().toISOString(),
-      'original-filename': fileName,
-    },
-  });
+  const url = new URL(`${endpoint}/${R2_BUCKET_NAME}/${objectKey}`);
+  
+  // Add query params for presigned URL
+  url.searchParams.set('X-Amz-Expires', URL_EXPIRY_SECONDS.toString());
 
-  const uploadUrl = await getSignedUrl(client, command, {
-    expiresIn: UPLOAD_URL_EXPIRY,
-  });
+  // Sign the request
+  const signedRequest = await client.sign(
+    new Request(url.toString(), {
+      method: 'PUT',
+      headers: {
+        'Content-Type': contentType,
+        'Content-Length': contentLength.toString(),
+      },
+    }),
+    {
+      aws: { signQuery: true },
+    }
+  );
 
-  return { uploadUrl, objectKey };
+  return {
+    uploadUrl: signedRequest.url,
+    objectKey,
+  };
 }
 
 /**
@@ -79,40 +86,55 @@ export async function getUploadPresignedUrl(
  */
 export async function getDownloadPresignedUrl(objectKey: string): Promise<string> {
   const client = getR2Client();
+  const endpoint = getR2Endpoint();
 
-  const command = new GetObjectCommand({
-    Bucket: R2_BUCKET_NAME,
-    Key: objectKey,
-  });
+  const url = new URL(`${endpoint}/${R2_BUCKET_NAME}/${objectKey}`);
+  url.searchParams.set('X-Amz-Expires', URL_EXPIRY_SECONDS.toString());
 
-  const downloadUrl = await getSignedUrl(client, command, {
-    expiresIn: DOWNLOAD_URL_EXPIRY,
-  });
+  const signedRequest = await client.sign(
+    new Request(url.toString(), {
+      method: 'GET',
+    }),
+    {
+      aws: { signQuery: true },
+    }
+  );
 
-  return downloadUrl;
+  return signedRequest.url;
 }
 
 /**
- * Delete a video from R2 (manual cleanup if needed)
+ * Delete a video from R2
  */
 export async function deleteObject(objectKey: string): Promise<void> {
   const client = getR2Client();
+  const endpoint = getR2Endpoint();
 
-  const command = new DeleteObjectCommand({
-    Bucket: R2_BUCKET_NAME,
-    Key: objectKey,
+  const url = `${endpoint}/${R2_BUCKET_NAME}/${objectKey}`;
+
+  const response = await client.fetch(url, {
+    method: 'DELETE',
   });
 
-  await client.send(command);
+  if (!response.ok && response.status !== 404) {
+    throw new Error(`Failed to delete object: ${response.status}`);
+  }
 }
 
 /**
- * Get the public R2 URL for an object (if bucket has public access)
- * Note: This requires the bucket to be configured for public access
+ * Fetch video from R2 and return as base64
  */
-export function getPublicUrl(objectKey: string): string {
-  if (!R2_ACCOUNT_ID) {
-    throw new Error('R2 account ID not configured');
+export async function fetchAsBase64(objectKey: string): Promise<{ base64: string; contentType: string }> {
+  const downloadUrl = await getDownloadPresignedUrl(objectKey);
+  
+  const response = await fetch(downloadUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch from R2: ${response.status}`);
   }
-  return `https://${R2_BUCKET_NAME}.${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${objectKey}`;
+
+  const arrayBuffer = await response.arrayBuffer();
+  const base64 = Buffer.from(arrayBuffer).toString('base64');
+  const contentType = response.headers.get('content-type') || 'video/mp4';
+
+  return { base64, contentType };
 }

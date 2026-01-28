@@ -3,5 +3,5 @@ export {
   getUploadPresignedUrl,
   getDownloadPresignedUrl,
   deleteObject,
-  getPublicUrl,
+  fetchAsBase64,
 } from './r2';

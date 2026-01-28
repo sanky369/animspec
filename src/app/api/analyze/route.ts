@@ -10,7 +10,7 @@ import { adminAuth, adminDb, adminStorage } from '@/lib/firebase/admin';
 import { COLLECTIONS, CREDIT_COSTS, MAX_ANALYSES_PER_USER } from '@/types/database';
 import { FieldValue } from 'firebase-admin/firestore';
 import type { OutputFormat, QualityLevel, TriggerContext, VideoMetadata } from '@/types/analysis';
-import { getDownloadPresignedUrl, isR2Configured, deleteObject } from '@/lib/storage/r2';
+import { fetchAsBase64, isR2Configured, deleteObject } from '@/lib/storage/r2';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 300 seconds timeout for Kimi thinking mode
@@ -238,16 +238,9 @@ export async function POST(request: NextRequest) {
     // Fetch video from R2 if objectKey is provided
     if (r2ObjectKey && isR2Configured()) {
       try {
-        const downloadUrl = await getDownloadPresignedUrl(r2ObjectKey);
-        const r2Response = await fetch(downloadUrl);
-        
-        if (!r2Response.ok) {
-          throw new Error('Failed to fetch video from storage');
-        }
-        
-        const arrayBuffer = await r2Response.arrayBuffer();
-        videoBase64 = Buffer.from(arrayBuffer).toString('base64');
-        mimeType = r2MimeType || r2Response.headers.get('content-type') || 'video/mp4';
+        const r2Data = await fetchAsBase64(r2ObjectKey);
+        videoBase64 = r2Data.base64;
+        mimeType = r2MimeType || r2Data.contentType;
         
         // Schedule deletion after analysis (3 days handled by R2 lifecycle, but we can delete sooner)
         after(async () => {
