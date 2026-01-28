@@ -15,8 +15,10 @@ import { extractFrames } from '@/lib/ffmpeg/extract-frames';
 import { createFrameGrid } from '@/lib/ffmpeg/create-grid';
 import { createSseParser } from '@/lib/streaming/sse';
 
-// 20MB threshold for using Files API
+// 20MB threshold for using Files API (Gemini)
 const FILES_API_THRESHOLD = 20 * 1024 * 1024;
+// 4MB threshold for using R2 (Vercel body limit is ~4.5MB)
+const R2_UPLOAD_THRESHOLD = 4 * 1024 * 1024;
 const KEYFRAME_EXTRACTION_TIMEOUT_MS = 15000;
 const KEYFRAMES_ENABLED = process.env.NEXT_PUBLIC_DISABLE_KEYFRAMES !== 'true';
 
@@ -163,7 +165,7 @@ export function useAnalysis(): UseAnalysisReturn {
           formData.append('frameGridColumns', frameGrid.columns.toString());
         }
 
-        // For larger files, use Gemini Files API
+        // For very large files (>20MB), use Gemini Files API
         if (file.size > FILES_API_THRESHOLD) {
           setProgress({ step: 'uploading', message: 'Uploading video to Gemini...' });
 
@@ -186,8 +188,56 @@ export function useAnalysis(): UseAnalysisReturn {
           // Use file URI for analysis
           formData.append('fileUri', uploadResult.uri);
           formData.append('fileMimeType', uploadResult.mimeType);
+        } else if (file.size > R2_UPLOAD_THRESHOLD) {
+          // For medium files (4-20MB), use R2 to bypass Vercel body limit
+          setProgress({ step: 'uploading', message: 'Uploading video...' });
+
+          // Get presigned URL
+          const urlResponse = await fetch('/api/upload-url', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+              fileName: file.name,
+              contentType: file.type,
+              contentLength: file.size,
+            }),
+          });
+
+          if (!urlResponse.ok) {
+            const error = await urlResponse.json().catch(() => ({ error: 'Failed to get upload URL' }));
+            // Fall back to inline base64 if R2 not configured
+            if (urlResponse.status === 503) {
+              throw new Error('File too large. Please use a video under 4MB or contact support.');
+            }
+            throw new Error(error.error || 'Failed to get upload URL');
+          }
+
+          const { uploadUrl, objectKey } = await urlResponse.json();
+
+          // Upload directly to R2
+          setProgress({ step: 'uploading', message: 'Uploading video to cloud storage...' });
+          
+          const r2Response = await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': file.type,
+            },
+            body: file,
+          });
+
+          if (!r2Response.ok) {
+            throw new Error('Failed to upload video to storage');
+          }
+
+          // Pass R2 object key to analyze endpoint
+          formData.append('r2ObjectKey', objectKey);
+          formData.append('r2MimeType', file.type);
         } else {
-          // For smaller files, use inline base64
+          // For smaller files (<4MB), use inline base64
           setProgress({ step: 'extracting', message: 'Processing video...' });
 
           const arrayBuffer = await file.arrayBuffer();

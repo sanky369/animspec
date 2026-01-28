@@ -10,6 +10,7 @@ import { adminAuth, adminDb, adminStorage } from '@/lib/firebase/admin';
 import { COLLECTIONS, CREDIT_COSTS, MAX_ANALYSES_PER_USER } from '@/types/database';
 import { FieldValue } from 'firebase-admin/firestore';
 import type { OutputFormat, QualityLevel, TriggerContext, VideoMetadata } from '@/types/analysis';
+import { getDownloadPresignedUrl, isR2Configured, deleteObject } from '@/lib/storage/r2';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 300 seconds timeout for Kimi thinking mode
@@ -198,14 +199,18 @@ export async function POST(request: NextRequest) {
     // Parse form data
     const fileUri = formData.get('fileUri') as string | null;
     const fileMimeType = formData.get('fileMimeType') as string | null;
-    const videoBase64 = formData.get('videoBase64') as string | null;
-    const mimeType = formData.get('mimeType') as string;
+    let videoBase64 = formData.get('videoBase64') as string | null;
+    let mimeType = formData.get('mimeType') as string;
     const format = formData.get('format') as OutputFormat;
     const quality = formData.get('quality') as QualityLevel;
     const triggerContext = formData.get('triggerContext') as TriggerContext | null;
     const fileSizeStr = formData.get('fileSize') as string | null;
     const fileSize = fileSizeStr ? parseInt(fileSizeStr, 10) : 0;
     const videoMetadata = parseVideoMetadata(formData);
+    
+    // R2 storage support for large files
+    const r2ObjectKey = formData.get('r2ObjectKey') as string | null;
+    const r2MimeType = formData.get('r2MimeType') as string | null;
 
     const frameGridBase64 = formData.get('frameGridBase64') as string | null;
     const frameGridWidth = parseNumber(formData.get('frameGridWidth') as string | null);
@@ -228,6 +233,38 @@ export async function POST(request: NextRequest) {
         JSON.stringify({ error: 'Missing required fields' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Fetch video from R2 if objectKey is provided
+    if (r2ObjectKey && isR2Configured()) {
+      try {
+        const downloadUrl = await getDownloadPresignedUrl(r2ObjectKey);
+        const r2Response = await fetch(downloadUrl);
+        
+        if (!r2Response.ok) {
+          throw new Error('Failed to fetch video from storage');
+        }
+        
+        const arrayBuffer = await r2Response.arrayBuffer();
+        videoBase64 = Buffer.from(arrayBuffer).toString('base64');
+        mimeType = r2MimeType || r2Response.headers.get('content-type') || 'video/mp4';
+        
+        // Schedule deletion after analysis (3 days handled by R2 lifecycle, but we can delete sooner)
+        after(async () => {
+          try {
+            await deleteObject(r2ObjectKey);
+            console.log(`Deleted R2 object: ${r2ObjectKey}`);
+          } catch (err) {
+            console.error(`Failed to delete R2 object ${r2ObjectKey}:`, err);
+          }
+        });
+      } catch (err) {
+        console.error('R2 fetch error:', err);
+        return new Response(
+          JSON.stringify({ error: 'Failed to retrieve video from storage' }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     if (!fileUri && !videoBase64) {
