@@ -4,8 +4,8 @@ import { getUploadPresignedUrl, isR2Configured } from '@/lib/storage/r2';
 
 export const runtime = 'nodejs';
 
-// Maximum file size: 500MB (R2 supports up to 5GB per object)
-const MAX_FILE_SIZE = 500 * 1024 * 1024;
+// Maximum file size: 100MB (Kimi's limit)
+const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
 // Allowed video MIME types
 const ALLOWED_TYPES = [
