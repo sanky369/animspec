@@ -7,10 +7,11 @@ const KIMI_MODEL = 'kimi-k2.5';
 const KIMI_BASE_URL = 'https://api.moonshot.ai/v1';
 
 // Config for Kimi K2.5
-// Per official docs: temperature=1.0 for Thinking mode, top_p=0.95
+// Per official docs: temperature=0.6 for Instant mode, top_p=0.95
+// Using Instant mode for direct responses without reasoning traces
 const KIMI_CONFIG = {
-  temperature: 1, // Kimi K2.5 requires temperature=1 for Thinking mode
-  top_p: 0.95,    // Recommended by official Moonshot docs
+  temperature: 0.6, // Kimi K2.5: 0.6 for Instant mode, 1.0 for Thinking mode
+  top_p: 0.95,      // Recommended by official Moonshot docs
   max_tokens: 8192,
 };
 
@@ -118,30 +119,27 @@ export async function analyzeVideoWithKimi(
 
   const contentParts = buildContentParts(videoBase64, mimeType, promptText, analysisImages);
 
-  // Cast content to unknown to bypass OpenAI SDK type restrictions
-  // video_url is a Moonshot-specific extension not in OpenAI SDK types
-  const response = await client.chat.completions.create({
+  // Cast to any to support Moonshot-specific extensions not in OpenAI SDK types:
+  // - video_url content type
+  // - thinking parameter for Instant mode
+  // Per official docs: https://huggingface.co/moonshotai/Kimi-K2.5#chat-completion
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const response = await (client.chat.completions.create as any)({
     model: KIMI_MODEL,
     messages: [
       {
         role: 'user',
-        content: contentParts as unknown as OpenAI.Chat.ChatCompletionContentPart[],
+        content: contentParts,
       },
     ],
     temperature: KIMI_CONFIG.temperature,
     top_p: KIMI_CONFIG.top_p,
     max_tokens: KIMI_CONFIG.max_tokens,
+    // Use Instant mode for direct output (no reasoning traces)
+    thinking: { type: 'disabled' },
   });
 
-  // Kimi K2.5 returns reasoning_content (thinking) separately from content
-  // We combine both for the full response, or just use content if reasoning is empty
-  const message = response.choices[0]?.message;
-  const reasoningContent = (message as { reasoning_content?: string })?.reasoning_content || '';
-  const textContent = message?.content || '';
-  
-  // If there's reasoning content, it contains the thinking process
-  // The main content has the final answer
-  const text = textContent || reasoningContent;
+  const text = response.choices[0]?.message?.content;
   
   if (!text) {
     throw new Error('Empty response from Kimi');
@@ -164,26 +162,29 @@ export async function* analyzeVideoWithKimiStream(
 
   const contentParts = buildContentParts(videoBase64, mimeType, promptText, analysisImages);
 
-  // Cast content to unknown to bypass OpenAI SDK type restrictions
-  // video_url is a Moonshot-specific extension not in OpenAI SDK types
-  const stream = await client.chat.completions.create({
+  // Cast to any to support Moonshot-specific extensions not in OpenAI SDK types:
+  // - video_url content type  
+  // - thinking parameter for Instant mode
+  // Per official docs: https://huggingface.co/moonshotai/Kimi-K2.5#chat-completion
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const stream = await (client.chat.completions.create as any)({
     model: KIMI_MODEL,
     messages: [
       {
         role: 'user',
-        content: contentParts as unknown as OpenAI.Chat.ChatCompletionContentPart[],
+        content: contentParts,
       },
     ],
     temperature: KIMI_CONFIG.temperature,
     top_p: KIMI_CONFIG.top_p,
     max_tokens: KIMI_CONFIG.max_tokens,
     stream: true,
+    // Use Instant mode for direct output (no reasoning traces)
+    thinking: { type: 'disabled' },
   });
 
   for await (const chunk of stream) {
-    // Kimi K2.5 may return reasoning_content in delta for thinking mode
-    const delta = chunk.choices[0]?.delta as { content?: string; reasoning_content?: string };
-    const text = delta?.content || delta?.reasoning_content;
+    const text = chunk.choices[0]?.delta?.content;
     if (text) {
       yield text;
     }
