@@ -47,7 +47,7 @@ interface UseAnalysisReturn {
   generatedFormats: OutputFormat[];
   streamingContent: string;
   error: string | null;
-  analyze: (file: File, metadata: VideoMetadata, config: AnalysisConfig) => Promise<void>;
+  analyze: (file: File, metadata: VideoMetadata, config: AnalysisConfig, authToken?: string | null) => Promise<void>;
   switchFormat: (format: OutputFormat) => void;
   reset: () => void;
 }
@@ -65,7 +65,7 @@ export function useAnalysis(): UseAnalysisReturn {
   const generatedFormats = Object.keys(resultsMap) as OutputFormat[];
 
   const analyze = useCallback(
-    async (file: File, metadata: VideoMetadata, config: AnalysisConfig) => {
+    async (file: File, metadata: VideoMetadata, config: AnalysisConfig, authToken?: string | null) => {
       setIsAnalyzing(true);
       setError(null);
       setResult(null);
@@ -209,6 +209,8 @@ export function useAnalysis(): UseAnalysisReturn {
         const response = await fetch('/api/analyze', {
           method: 'POST',
           body: formData,
+          credentials: 'include',
+          headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {},
         });
 
         if (!response.ok) {

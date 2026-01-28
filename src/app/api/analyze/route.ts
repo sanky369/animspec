@@ -43,11 +43,17 @@ function parseVideoMetadata(formData: FormData): VideoMetadata | null {
 }
 
 async function verifyAuth(request: NextRequest): Promise<string | null> {
+  // Check Authorization header first, then cookie
+  const authHeader = request.headers.get('Authorization');
   const sessionCookie = request.cookies.get('__session')?.value;
-  if (!sessionCookie) return null;
+  const token = authHeader?.startsWith('Bearer ') 
+    ? authHeader.slice(7) 
+    : sessionCookie;
+    
+  if (!token) return null;
 
   try {
-    const decodedToken = await adminAuth.verifyIdToken(sessionCookie);
+    const decodedToken = await adminAuth.verifyIdToken(token);
     return decodedToken.uid;
   } catch {
     return null;

@@ -63,8 +63,9 @@ export default function DashboardPage() {
   const handleAnalyze = useCallback(async () => {
     if (!file || !metadata) return;
     // Refresh token before analysis to ensure it's valid
-    await refreshToken();
-    await analyze(file, metadata, config);
+    // Pass token directly to analyze to avoid cookie race condition
+    const token = await refreshToken();
+    await analyze(file, metadata, config, token);
     // Refresh profile to update credits after analysis
     await refreshProfile();
   }, [file, metadata, config, analyze, refreshToken, refreshProfile]);
