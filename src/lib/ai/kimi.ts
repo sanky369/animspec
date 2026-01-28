@@ -189,15 +189,39 @@ export async function* analyzeVideoWithKimiStream(
   });
 
   // In Thinking mode streaming, Kimi may send:
-  // - reasoning_content chunks (thinking process) 
+  // - reasoning_content or reasoning chunks (thinking process) 
   // - content chunks (final answer)
   // We yield both to show the full output
+  // Note: Different providers may use different field names:
+  // - Official Moonshot API: reasoning_content
+  // - Together.ai: reasoning
+  // - Both use: content
+  let chunkCount = 0;
+  let hasContent = false;
+  let hasReasoning = false;
+  
   for await (const chunk of stream) {
+    chunkCount++;
     const delta = chunk.choices[0]?.delta;
-    // Try content first (final answer), then reasoning_content (thinking)
-    const text = delta?.content || delta?.reasoning_content;
+    if (!delta) continue;
+    
+    // Log first few chunks to debug
+    if (chunkCount <= 3) {
+      console.log(`[Kimi] Chunk ${chunkCount} delta keys:`, Object.keys(delta));
+    }
+    
+    // Try all possible fields for reasoning/thinking content
+    const content = delta.content;
+    const reasoning = delta.reasoning_content || delta.reasoning;
+    
+    if (content) hasContent = true;
+    if (reasoning) hasReasoning = true;
+    
+    const text = content || reasoning;
     if (text) {
       yield text;
     }
   }
+  
+  console.log(`[Kimi] Stream complete. Chunks: ${chunkCount}, hasContent: ${hasContent}, hasReasoning: ${hasReasoning}`);
 }
