@@ -7,7 +7,6 @@ export type GeminiQualityLevel = Exclude<QualityLevel, 'kimi'>;
 
 // Model mapping for Gemini quality levels
 const QUALITY_TO_MODEL: Record<GeminiQualityLevel, string> = {
-  fast: 'gemini-2.5-flash',
   balanced: 'gemini-3-flash-preview',
   precise: 'gemini-3-pro-preview',
 };
@@ -18,10 +17,6 @@ const INLINE_SIZE_LIMIT = 20 * 1024 * 1024;
 // Config for each Gemini quality level
 // Gemini 3 models support thinking mode for deeper reasoning
 const QUALITY_TO_CONFIG: Record<GeminiQualityLevel, object> = {
-  fast: {
-    maxOutputTokens: 3072,
-    temperature: 0.4,
-  },
   balanced: {
     maxOutputTokens: 8192,
     temperature: 0.2,
@@ -112,14 +107,6 @@ export async function analyzeVideoWithGemini(
 
     return text;
   } catch (error) {
-    // Try fallback model if primary fails
-    if (quality === 'fast') {
-      console.warn('Primary model failed, trying fallback...');
-      return analyzeVideoWithGemini({
-        ...options,
-        quality: 'balanced',
-      });
-    }
     throw error;
   }
 }

@@ -26,9 +26,9 @@ function formatDate(date: Date): string {
 
 function getQualityLabel(quality: string): string {
   switch (quality) {
-    case 'fast': return 'Fast';
-    case 'balanced': return 'Balanced';
+    case 'balanced': return 'Good';
     case 'precise': return 'Precise';
+    case 'kimi': return 'Best for most cases';
     default: return quality;
   }
 }

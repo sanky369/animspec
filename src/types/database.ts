@@ -5,7 +5,6 @@ export type { OutputFormat, QualityLevel, TriggerContext };
 
 // Credit costs per quality level
 export const CREDIT_COSTS: Record<QualityLevel, number> = {
-  fast: 1,
   balanced: 3,
   precise: 20,
   kimi: 5,

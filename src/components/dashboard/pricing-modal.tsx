@@ -54,9 +54,9 @@ export function PricingModal({ isOpen, onClose, onSelectPack, isLoading }: Prici
             const credits = PACK_CREDITS[pack.id];
             const priceCents = PACK_PRICES[pack.id];
             const priceFormatted = (priceCents / 100).toFixed(0);
-            const fastAnalyses = Math.floor(credits / CREDIT_COSTS.fast);
             const balancedAnalyses = Math.floor(credits / CREDIT_COSTS.balanced);
             const preciseAnalyses = Math.floor(credits / CREDIT_COSTS.precise);
+            const kimiAnalyses = Math.floor(credits / CREDIT_COSTS.kimi);
 
             return (
               <div
@@ -76,15 +76,15 @@ export function PricingModal({ isOpen, onClose, onSelectPack, isLoading }: Prici
                 <ul className="pricing-modal-features">
                   <li>
                     <CheckIcon className="w-4 h-4" />
-                    ~{fastAnalyses} fast analyses
-                  </li>
-                  <li>
-                    <CheckIcon className="w-4 h-4" />
-                    ~{balancedAnalyses} balanced analyses
+                    ~{balancedAnalyses} good analyses
                   </li>
                   <li>
                     <CheckIcon className="w-4 h-4" />
                     ~{preciseAnalyses} precise analyses
+                  </li>
+                  <li>
+                    <CheckIcon className="w-4 h-4" />
+                    ~{kimiAnalyses} Kimi K2.5 analyses
                   </li>
                   <li>
                     <CheckIcon className="w-4 h-4" />

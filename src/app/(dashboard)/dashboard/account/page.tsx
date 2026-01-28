@@ -120,15 +120,7 @@ export default function AccountPage() {
             <div className="credit-usage-card">
               <div className="credit-usage-header">
                 <ZapIcon />
-                <span>Fast</span>
-              </div>
-              <div className="credit-usage-cost">{CREDIT_COSTS.fast} credit</div>
-              <div className="credit-usage-model">Gemini 2.5 Flash</div>
-            </div>
-            <div className="credit-usage-card">
-              <div className="credit-usage-header">
-                <ZapIcon />
-                <span>Balanced</span>
+                <span>Good</span>
               </div>
               <div className="credit-usage-cost">{CREDIT_COSTS.balanced} credits</div>
               <div className="credit-usage-model">Gemini 3 Flash</div>
@@ -143,6 +135,14 @@ export default function AccountPage() {
               {!profile?.isPaidUser && (
                 <div className="credit-usage-locked">Requires paid account</div>
               )}
+            </div>
+            <div className="credit-usage-card">
+              <div className="credit-usage-header">
+                <ZapIcon />
+                <span>Best for most cases</span>
+              </div>
+              <div className="credit-usage-cost">{CREDIT_COSTS.kimi} credits</div>
+              <div className="credit-usage-model">Kimi K2.5</div>
             </div>
           </div>
         </div>

@@ -51,7 +51,7 @@ export const FORMAT_OPTIONS: FormatOption[] = [
 ];
 
 export interface QualityOption {
-  id: 'fast' | 'balanced' | 'precise';
+  id: 'balanced' | 'precise' | 'kimi';
   label: string;
   icon: string;
   model: string;
@@ -61,16 +61,8 @@ export interface QualityOption {
 
 export const QUALITY_OPTIONS: QualityOption[] = [
   {
-    id: 'fast',
-    label: 'Fast',
-    icon: '⚡',
-    model: 'gemini-2.5-flash',
-    description: 'Production stable, optimized for speed',
-    estimatedCost: '~$0.01',
-  },
-  {
     id: 'balanced',
-    label: 'Balanced',
+    label: 'Good',
     icon: '🎯',
     model: 'gemini-3-flash-preview',
     description: 'Pro-level intelligence at Flash speed',
