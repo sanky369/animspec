@@ -28,6 +28,7 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const COOKIE_DOMAIN = process.env.NEXT_PUBLIC_COOKIE_DOMAIN;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -111,10 +112,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Set a session cookie that expires in 7 days
       // Include Secure flag for HTTPS (production)
       const isSecure = window.location.protocol === 'https:';
-      document.cookie = `__session=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax${isSecure ? '; Secure' : ''}`;
+      const domain = COOKIE_DOMAIN ? `; domain=${COOKIE_DOMAIN}` : '';
+      document.cookie = `__session=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax${isSecure ? '; Secure' : ''}${domain}`;
     } else {
       // Clear the session cookie
-      document.cookie = '__session=; path=/; max-age=0';
+      const domain = COOKIE_DOMAIN ? `; domain=${COOKIE_DOMAIN}` : '';
+      const isSecure = window.location.protocol === 'https:';
+      document.cookie = `__session=; path=/; max-age=0; SameSite=Lax${isSecure ? '; Secure' : ''}${domain}`;
     }
   };
 

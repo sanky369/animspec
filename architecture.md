@@ -530,6 +530,7 @@ LEMON_SQUEEZY_CREATOR_VARIANT_ID=creator-pack-variant-id
 LEMON_SQUEEZY_PRO_VARIANT_ID=pro-pack-variant-id
 LEMON_SQUEEZY_TEST_MODE=true
 LEMON_SQUEEZY_WEBHOOK_SECRET=your-webhook-secret
+NEXT_PUBLIC_COOKIE_DOMAIN=.animspec.com
 
 # Optional
 NEXT_PUBLIC_APP_URL=https://animspec.ai

@@ -3,7 +3,9 @@ import { after } from 'next/server';
 import {
   analyzeVideoWithGeminiStream,
   analyzeVideoWithGeminiFileStream,
+  type GeminiQualityLevel,
 } from '@/lib/ai/gemini';
+import { analyzeVideoWithKimiStream } from '@/lib/ai/kimi';
 import { adminAuth, adminDb, adminStorage } from '@/lib/firebase/admin';
 import { COLLECTIONS, CREDIT_COSTS, MAX_ANALYSES_PER_USER } from '@/types/database';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -260,12 +262,27 @@ export async function POST(request: NextRequest) {
 
         let analysisStream: AsyncGenerator<string, void, unknown>;
 
-        if (fileUri && fileMimeType) {
+        // Route to appropriate AI provider based on quality level
+        if (quality === 'kimi') {
+          // Kimi K2.5 only supports inline base64 (no Files API)
+          if (!videoBase64 || !mimeType) {
+            throw new Error('Kimi K2.5 requires inline video data. Large files (>20MB) are not supported.');
+          }
+          analysisStream = analyzeVideoWithKimiStream({
+            videoBase64,
+            mimeType,
+            format,
+            triggerContext,
+            videoMetadata,
+            fileSize,
+            analysisImages,
+          });
+        } else if (fileUri && fileMimeType) {
           analysisStream = analyzeVideoWithGeminiFileStream({
             fileUri,
             fileMimeType,
             format,
-            quality,
+            quality: quality as GeminiQualityLevel,
             triggerContext,
             videoMetadata,
             analysisImages,
@@ -275,7 +292,7 @@ export async function POST(request: NextRequest) {
             videoBase64,
             mimeType,
             format,
-            quality,
+            quality: quality as GeminiQualityLevel,
             triggerContext,
             videoMetadata,
             fileSize,

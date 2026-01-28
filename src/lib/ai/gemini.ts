@@ -2,8 +2,11 @@ import { GoogleGenAI } from '@google/genai';
 import type { OutputFormat, QualityLevel, TriggerContext, VideoMetadata } from '@/types/analysis';
 import { buildAnalysisPrompt, buildUserPrompt } from './prompts';
 
-// Model mapping for quality levels
-const QUALITY_TO_MODEL: Record<QualityLevel, string> = {
+// Quality levels supported by Gemini
+export type GeminiQualityLevel = Exclude<QualityLevel, 'kimi'>;
+
+// Model mapping for Gemini quality levels
+const QUALITY_TO_MODEL: Record<GeminiQualityLevel, string> = {
   fast: 'gemini-2.5-flash',
   balanced: 'gemini-3-flash-preview',
   precise: 'gemini-3-pro-preview',
@@ -12,9 +15,9 @@ const QUALITY_TO_MODEL: Record<QualityLevel, string> = {
 // Inline base64 size limit (20MB)
 const INLINE_SIZE_LIMIT = 20 * 1024 * 1024;
 
-// Config for each quality level
+// Config for each Gemini quality level
 // Gemini 3 models support thinking mode for deeper reasoning
-const QUALITY_TO_CONFIG: Record<QualityLevel, object> = {
+const QUALITY_TO_CONFIG: Record<GeminiQualityLevel, object> = {
   fast: {
     maxOutputTokens: 3072,
     temperature: 0.4,
@@ -45,7 +48,7 @@ export interface AnalyzeVideoOptions {
   videoBase64: string;
   mimeType: string;
   format: OutputFormat;
-  quality: QualityLevel;
+  quality: GeminiQualityLevel;
   triggerContext: TriggerContext;
   videoMetadata?: VideoMetadata | null;
   fileSize?: number;
@@ -56,7 +59,7 @@ export interface AnalyzeVideoWithFileOptions {
   fileUri: string;
   fileMimeType: string;
   format: OutputFormat;
-  quality: QualityLevel;
+  quality: GeminiQualityLevel;
   triggerContext: TriggerContext;
   videoMetadata?: VideoMetadata | null;
   analysisImages?: AnalysisImage[];

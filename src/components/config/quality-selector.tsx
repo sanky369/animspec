@@ -15,6 +15,7 @@ const QUALITY_OPTIONS = [
   { id: 'fast' as const, label: 'Fast', model: 'Gemini 2.5 Flash' },
   { id: 'balanced' as const, label: 'Balanced', model: 'Gemini 3 Flash' },
   { id: 'precise' as const, label: 'Precise', model: 'Gemini 3 Pro' },
+  { id: 'kimi' as const, label: 'Kimi', model: 'Kimi K2.5' },
 ];
 
 export function QualitySelector({

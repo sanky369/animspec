@@ -1,6 +1,6 @@
 export type OutputFormat = 'natural' | 'css' | 'gsap' | 'framer' | 'remotion';
 
-export type QualityLevel = 'fast' | 'balanced' | 'precise';
+export type QualityLevel = 'fast' | 'balanced' | 'precise' | 'kimi';
 
 export type TriggerContext = 'hover' | 'click' | 'scroll' | 'load' | 'loop' | 'focus' | null;
 
