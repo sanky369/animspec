@@ -95,7 +95,7 @@ export function useAnalysis(): UseAnalysisReturn {
         }
 
         const shouldAttachFrameGrid = KEYFRAMES_ENABLED
-          && file.size <= FILES_API_THRESHOLD
+          && file.size <= VERCEL_BODY_LIMIT
           && metadata.duration > 0;
         if (shouldAttachFrameGrid) {
           try {

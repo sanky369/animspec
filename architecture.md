@@ -18,11 +18,12 @@ AnimSpec.ai solves the problem that AI models cannot process video inputs, forci
               ↓ (POST requests + auth cookies)
 ┌─────────────────────────────────────────────────────────────┐
 │  API LAYER (Next.js Route Handlers)                         │
-│  - /api/upload    → Gemini Files API                        │
-│  - /api/analyze   → AI analysis streaming + credit deduct   │
-│  - /api/analyses  → User history                            │
-│  - /api/checkout  → Lemon Squeezy payment                   │
-│  - /api/webhooks  → Payment confirmation                    │
+│  - /api/upload      → Gemini Files API (large Gemini files) │
+│  - /api/upload-url  → R2 presigned URL (large Kimi files)   │
+│  - /api/analyze     → AI analysis streaming + credit deduct │
+│  - /api/analyses    → User history                          │
+│  - /api/checkout    → Lemon Squeezy payment                 │
+│  - /api/webhooks    → Payment confirmation                  │
 └─────────────────────────────────────────────────────────────┘
               ↓ (async operations)
 ┌─────────────────────────────────────────────────────────────┐
@@ -30,7 +31,9 @@ AnimSpec.ai solves the problem that AI models cannot process video inputs, forci
 │  - Firebase Auth (email/password + Google OAuth)            │
 │  - Firestore (profiles, analyses, transactions, purchases)  │
 │  - Firebase Storage (frame images)                          │
-│  - Gemini AI (video analysis)                               │
+│  - Cloudflare R2 (temporary video storage for large files)  │
+│  - Gemini AI (video analysis — fast/balanced/precise)       │
+│  - Kimi K2.5 (video analysis — thinking mode)               │
 │  - Lemon Squeezy (payments)                                 │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -41,12 +44,13 @@ AnimSpec.ai solves the problem that AI models cannot process video inputs, forci
 |-------|------------|
 | Frontend | React 19, Next.js 15 (App Router), Tailwind CSS 4 |
 | Backend | Node.js runtime, Next.js API Routes |
-| AI | Google Gemini API (@google/genai SDK) |
+| AI | Google Gemini API (@google/genai SDK), Kimi K2.5 (OpenAI SDK via Moonshot API) |
 | Auth | Firebase Authentication |
 | Database | Firestore |
-| Storage | Firebase Storage |
+| Storage | Firebase Storage (frame images), Cloudflare R2 (temporary video uploads) |
 | Payments | Lemon Squeezy |
 | Video Processing | FFmpeg.wasm (client-side, optional) |
+| Cloud Storage SDK | aws4fetch (lightweight S3-compatible signing for R2) |
 | UI Libraries | react-dropzone, shiki (syntax highlighting) |
 
 ---
@@ -92,6 +96,7 @@ User Auth Flow:
 | fast | gemini-2.5-flash | 1 | All users |
 | balanced | gemini-3-flash-preview | 3 | All users |
 | precise | gemini-3-pro-preview | 20 | Paid users only |
+| kimi | kimi-k2.5 (Moonshot) | 5 | All users |
 
 ### Credit Packs (Lemon Squeezy)
 
@@ -122,17 +127,24 @@ Lemon Squeezy webhook → Add credits to profile
 
 ### 1. Video Ingestion
 
-**Files:** `src/hooks/use-analysis.ts` → `src/app/api/upload/route.ts`
+**Files:** `src/hooks/use-analysis.ts` → `src/app/api/upload/route.ts`, `src/app/api/upload-url/route.ts`
 
-Users upload MP4, WebM, or MOV videos (max 100MB). File size determines the upload strategy:
+Users upload MP4, WebM, or MOV videos (max 100MB). File size and quality level determine the upload strategy:
 
 ```
-Video File → Check Size (20MB threshold)
+Video File → Check Size (4MB threshold — Vercel body limit)
   ↓
-  IF ≥ 20MB: Upload to /api/upload → Gemini Files API → Get fileUri
-  IF < 20MB: Convert to base64 → Include inline in request
+  IF ≤ 4MB: Convert to base64 → Include inline in request
   ↓
-  Both paths → /api/analyze with video data + metadata
+  IF > 4MB AND Gemini quality (fast/balanced/precise):
+    Upload to /api/upload → Gemini Files API → Get fileUri
+  ↓
+  IF > 4MB AND Kimi quality:
+    POST /api/upload-url → Get R2 presigned URL
+    Client uploads directly to R2 → Pass objectKey to /api/analyze
+    Server fetches from R2 → Converts to base64 → Deletes R2 object after
+  ↓
+  All paths → /api/analyze with video data + metadata
 ```
 
 **Video Metadata Extracted:**
@@ -144,9 +156,11 @@ Video File → Check Size (20MB threshold)
 
 ### 2. AI Analysis Engine
 
-**File:** `src/lib/ai/gemini.ts`
+**Files:** `src/lib/ai/gemini.ts`, `src/lib/ai/kimi.ts`
 
-The core analysis engine provides four functions for different scenarios:
+Two AI providers are supported, routed by quality level:
+
+**Gemini (Google)** — `src/lib/ai/gemini.ts`
 
 | Function | Streaming | Method |
 |----------|-----------|--------|
@@ -155,13 +169,23 @@ The core analysis engine provides four functions for different scenarios:
 | `analyzeVideoWithGeminiFile()` | No | Files API |
 | `analyzeVideoWithGeminiFileStream()` | Yes | Files API (primary) |
 
+**Kimi K2.5 (Moonshot)** — `src/lib/ai/kimi.ts`
+
+| Function | Streaming | Method |
+|----------|-----------|--------|
+| `analyzeVideoWithKimi()` | No | Inline base64 |
+| `analyzeVideoWithKimiStream()` | Yes | Inline base64 (primary) |
+
+Kimi uses the OpenAI SDK with Moonshot's base URL. It only supports inline base64 video input (no Files API), so large files are routed through Cloudflare R2 on the server side.
+
 **Model Selection by Quality Level:**
 
-| Quality | Model | Max Tokens | Temperature | Thinking |
-|---------|-------|------------|-------------|----------|
-| fast | gemini-2.5-flash | 3,072 | 0.4 | — |
-| balanced | gemini-3-flash-preview | 8,192 | 0.2 | high |
-| precise | gemini-3-pro-preview | 16,384 | 0.1 | high |
+| Quality | Provider | Model | Max Tokens | Temperature | Thinking |
+|---------|----------|-------|------------|-------------|----------|
+| fast | Gemini | gemini-2.5-flash | 3,072 | 0.4 | — |
+| balanced | Gemini | gemini-3-flash-preview | 8,192 | 0.2 | high |
+| precise | Gemini | gemini-3-pro-preview | 16,384 | 0.1 | high |
+| kimi | Moonshot | kimi-k2.5 | 8,192 | 1.0 | thinking mode (temp must be 1.0) |
 
 **What Gets Extracted:**
 1. **Animation Elements** — What's being animated (buttons, modals, cards, etc.)
@@ -209,9 +233,13 @@ Client → POST /api/analyze (with auth cookie)
   ↓
 Server → Verify auth → Check credits
   ↓
-Server → Opens SSE stream
+Server → If R2 objectKey provided: Fetch video from R2 → Convert to base64 → Schedule R2 deletion
   ↓
-Server → Starts async Gemini analysis
+Server → Route to AI provider based on quality level:
+         - fast/balanced/precise → Gemini (inline or Files API)
+         - kimi → Kimi K2.5 (inline base64)
+  ↓
+Server → Opens SSE stream
   ↓
 Server → Yields chunks: { type: 'progress' | 'chunk' | 'complete' | 'error', data?: string }
   ↓
@@ -281,17 +309,24 @@ Two approaches are available:
    ↓
    useAnalysis.analyze(file, metadata, config)
    ↓
-   Size check → base64 path OR Files API path
+   Size check (4MB threshold):
+     ≤ 4MB → inline base64
+     > 4MB + Gemini → Gemini Files API (/api/upload)
+     > 4MB + Kimi → R2 presigned URL (/api/upload-url) → Direct upload to R2
    ↓
    POST to /api/analyze with __session cookie
 
 5. SERVER PROCESSES
    ↓
-   Verify auth → Check credits → Deduct credits
+   Verify auth → Check credits
    ↓
-   Build system prompt → Call Gemini API → Stream response
+   If R2 objectKey → Fetch from R2 → Convert to base64 → Schedule cleanup
    ↓
-   Save analysis to Firestore → Record credit transaction
+   Route by quality: Gemini (fast/balanced/precise) OR Kimi K2.5 (kimi)
+   ↓
+   Build system prompt → Call AI API → Stream response
+   ↓
+   Deduct credits → Save analysis to Firestore → Record credit transaction
 
 6. CLIENT DISPLAYS
    ↓
@@ -394,8 +429,9 @@ src/app/
 │       └── settings/    # User settings
 │
 ├── api/
-│   ├── analyze/         # Video analysis endpoint
-│   ├── upload/          # Gemini Files API upload
+│   ├── analyze/         # Video analysis endpoint (Gemini + Kimi routing)
+│   ├── upload/          # Gemini Files API upload (large Gemini files)
+│   ├── upload-url/      # R2 presigned URL generation (large Kimi files)
 │   ├── analyses/        # Get user's analyses
 │   ├── checkout/        # Create Lemon Squeezy checkout
 │   ├── transactions/    # Get credit transactions
@@ -439,7 +475,7 @@ src/components/
 
 ```typescript
 type OutputFormat = 'natural' | 'css' | 'gsap' | 'framer' | 'remotion'
-type QualityLevel = 'fast' | 'balanced' | 'precise'
+type QualityLevel = 'fast' | 'balanced' | 'precise' | 'kimi'
 type TriggerContext = 'hover' | 'click' | 'scroll' | 'load' | 'loop' | 'focus' | null
 
 interface AnalysisConfig {
@@ -484,11 +520,14 @@ interface VideoMetadata {
 | `src/app/(dashboard)/dashboard/page.tsx` | Main analysis interface |
 | `src/app/api/analyze/route.ts` | Main analysis endpoint (streaming) |
 | `src/app/api/upload/route.ts` | Gemini Files API upload handler |
+| `src/app/api/upload-url/route.ts` | R2 presigned URL generation for Kimi uploads |
 | `src/app/api/checkout/route.ts` | Lemon Squeezy checkout creation |
 | `src/app/api/webhooks/lemon-squeezy/route.ts` | Payment webhook handler |
 | `src/lib/ai/gemini.ts` | Gemini model integration |
+| `src/lib/ai/kimi.ts` | Kimi K2.5 model integration (Moonshot API) |
 | `src/lib/ai/prompts.ts` | System prompt construction |
 | `src/lib/ai/output-parsers.ts` | Result parsing & formatting |
+| `src/lib/storage/r2.ts` | Cloudflare R2 storage operations (presigned URLs, fetch, delete) |
 | `src/lib/firebase/admin.ts` | Firebase Admin SDK (server-side) |
 | `src/lib/firebase/client.ts` | Firebase Client SDK (browser) |
 | `src/lib/actions/credits.ts` | Credit management functions |
@@ -523,6 +562,9 @@ FIREBASE_ADMIN_PROJECT_ID=your-project-id
 FIREBASE_ADMIN_CLIENT_EMAIL=firebase-adminsdk@your-project.iam.gserviceaccount.com
 FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 
+# Required - Kimi K2.5 (Moonshot AI)
+MOONSHOT_API_KEY=your-moonshot-api-key
+
 # Required - Lemon Squeezy (payments)
 LEMON_SQUEEZY_API_KEY=your-lemon-squeezy-api-key
 LEMON_SQUEEZY_STORE_ID=your-store-id
@@ -531,6 +573,12 @@ LEMON_SQUEEZY_PRO_VARIANT_ID=pro-pack-variant-id
 LEMON_SQUEEZY_TEST_MODE=true
 LEMON_SQUEEZY_WEBHOOK_SECRET=your-webhook-secret
 NEXT_PUBLIC_COOKIE_DOMAIN=.animspec.com
+
+# Required - Cloudflare R2 (temporary video storage for large files)
+CLOUDFLARE_R2_ACCOUNT_ID=your-r2-account-id
+CLOUDFLARE_R2_ACCESS_KEY_ID=your-r2-access-key-id
+CLOUDFLARE_R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
+CLOUDFLARE_R2_BUCKET_NAME=animspec-videos
 
 # Optional
 NEXT_PUBLIC_APP_URL=https://animspec.ai
@@ -542,8 +590,11 @@ NEXT_PUBLIC_APP_URL=https://animspec.ai
 |------------|-------|
 | File Size Limit | 100MB |
 | Accepted Formats | MP4, WebM, MOV |
-| Streaming Timeout | 60 seconds |
-| Size threshold for Files API | 20MB |
+| Streaming Timeout | 300 seconds (Vercel Pro/Enterprise) |
+| Vercel Body Limit | ~4.5MB (triggers external upload) |
+| Gemini Files API Threshold | > 4MB (uses Gemini Files API) |
+| R2 Upload Threshold | > 4MB for Kimi quality (uses R2 → server fetch) |
+| R2 Presigned URL Expiry | 1 hour |
 | Default Free Credits | 20 |
 | Max Analyses per User | 50 |
 
@@ -555,7 +606,7 @@ NEXT_PUBLIC_APP_URL=https://animspec.ai
 
 ```
 1. Auth: User logged in with 15 credits
-2. Upload: 3.2 MB < 20 MB → inline base64 path
+2. Upload: 3.2 MB ≤ 4 MB → inline base64 path
 3. Metadata: duration=5.0, resolution=1920x1080, mimeType=video/mp4
 4. Config: format=natural, quality=balanced, triggerContext=hover
 5. Credits: balanced costs 3 → User has 15 → Proceed
