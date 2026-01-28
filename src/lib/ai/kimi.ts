@@ -7,13 +7,16 @@ const KIMI_MODEL = 'kimi-k2.5';
 const KIMI_BASE_URL = 'https://api.moonshot.ai/v1';
 
 // Config for Kimi K2.5
-// Per official docs: temperature=1.0 for Thinking mode, top_p=0.95
-// Using Thinking mode for best video understanding quality (per official benchmarks)
-// All video benchmarks (VideoMMMU, VideoMME, MotionBench, etc.) use Thinking mode
+// Thinking mode (temp=1.0) gives best quality but is slow (can timeout on Vercel 60s limit)
+// Instant mode (temp=0.6) is faster but lower quality
+// Using Instant mode by default for Vercel compatibility
 const KIMI_CONFIG = {
-  temperature: 1.0,  // Kimi K2.5: 1.0 for Thinking mode (best for video)
+  temperature: 0.6,  // Using Instant mode for speed (Vercel 60s timeout)
   top_p: 0.95,       // Recommended by official Moonshot docs
   max_tokens: 8192,
+  // Set to true to use Instant mode (faster, no reasoning traces)
+  // Set to false for Thinking mode (slower but higher quality)
+  useInstantMode: true,
 };
 
 export interface AnalysisImage {
@@ -122,10 +125,10 @@ export async function analyzeVideoWithKimi(
 
   // Cast to any to support Moonshot-specific extensions not in OpenAI SDK types:
   // - video_url content type
+  // - thinking parameter for mode selection
   // Per official docs: https://huggingface.co/moonshotai/Kimi-K2.5#chat-completion
-  // Using Thinking mode (default) for best video understanding quality
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const response = await (client.chat.completions.create as any)({
+  const requestParams: any = {
     model: KIMI_MODEL,
     messages: [
       {
@@ -136,14 +139,17 @@ export async function analyzeVideoWithKimi(
     temperature: KIMI_CONFIG.temperature,
     top_p: KIMI_CONFIG.top_p,
     max_tokens: KIMI_CONFIG.max_tokens,
-    // Thinking mode is default - no need to specify
-    // It returns reasoning_content (thinking) + content (final answer)
-  });
+  };
 
-  // Kimi K2.5 Thinking mode returns:
-  // - reasoning_content: the thinking/reasoning process
-  // - content: the final answer
-  // For video analysis, we want the final answer (content)
+  // Use Instant mode for faster responses (required for Vercel 60s timeout)
+  if (KIMI_CONFIG.useInstantMode) {
+    requestParams.thinking = { type: 'disabled' };
+  }
+
+  const response = await (client.chat.completions.create as any)(requestParams);
+
+  // In Instant mode: content only
+  // In Thinking mode: reasoning_content + content
   const message = response.choices[0]?.message;
   const text = message?.content || message?.reasoning_content;
   
@@ -170,10 +176,10 @@ export async function* analyzeVideoWithKimiStream(
 
   // Cast to any to support Moonshot-specific extensions not in OpenAI SDK types:
   // - video_url content type  
+  // - thinking parameter for mode selection
   // Per official docs: https://huggingface.co/moonshotai/Kimi-K2.5#chat-completion
-  // Using Thinking mode (default) for best video understanding quality
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const stream = await (client.chat.completions.create as any)({
+  const requestParams: any = {
     model: KIMI_MODEL,
     messages: [
       {
@@ -185,20 +191,19 @@ export async function* analyzeVideoWithKimiStream(
     top_p: KIMI_CONFIG.top_p,
     max_tokens: KIMI_CONFIG.max_tokens,
     stream: true,
-    // Thinking mode is default - no need to specify
-  });
+  };
 
-  // In Thinking mode streaming, Kimi may send:
-  // - reasoning_content or reasoning chunks (thinking process) 
-  // - content chunks (final answer)
-  // We yield both to show the full output
-  // Note: Different providers may use different field names:
-  // - Official Moonshot API: reasoning_content
-  // - Together.ai: reasoning
-  // - Both use: content
+  // Use Instant mode for faster responses (required for Vercel 60s timeout)
+  if (KIMI_CONFIG.useInstantMode) {
+    requestParams.thinking = { type: 'disabled' };
+  }
+
+  const stream = await (client.chat.completions.create as any)(requestParams);
+
+  // In streaming:
+  // - Instant mode: delta.content only
+  // - Thinking mode: delta.reasoning_content/reasoning + delta.content
   let chunkCount = 0;
-  let hasContent = false;
-  let hasReasoning = false;
   
   for await (const chunk of stream) {
     chunkCount++;
@@ -210,18 +215,12 @@ export async function* analyzeVideoWithKimiStream(
       console.log(`[Kimi] Chunk ${chunkCount} delta keys:`, Object.keys(delta));
     }
     
-    // Try all possible fields for reasoning/thinking content
-    const content = delta.content;
-    const reasoning = delta.reasoning_content || delta.reasoning;
-    
-    if (content) hasContent = true;
-    if (reasoning) hasReasoning = true;
-    
-    const text = content || reasoning;
+    // Try all possible fields
+    const text = delta.content || delta.reasoning_content || delta.reasoning;
     if (text) {
       yield text;
     }
   }
   
-  console.log(`[Kimi] Stream complete. Chunks: ${chunkCount}, hasContent: ${hasContent}, hasReasoning: ${hasReasoning}`);
+  console.log(`[Kimi] Stream complete. Total chunks: ${chunkCount}`);
 }
