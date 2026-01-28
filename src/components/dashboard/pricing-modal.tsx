@@ -26,12 +26,21 @@ const packs: { id: PackType; name: string; description: string; popular: boolean
   },
 ];
 
+// TODO: Remove PAYMENTS_ENABLED flag once Lemon Squeezy is approved
+const PAYMENTS_ENABLED = false;
+
 export function PricingModal({ isOpen, onClose, onSelectPack, isLoading }: PricingModalProps) {
   const [selectedPack, setSelectedPack] = useState<PackType | null>(null);
+  const [showComingSoon, setShowComingSoon] = useState(false);
 
   if (!isOpen) return null;
 
   const handleContinue = () => {
+    if (!PAYMENTS_ENABLED) {
+      setShowComingSoon(true);
+      setTimeout(() => setShowComingSoon(false), 3000);
+      return;
+    }
     if (selectedPack) {
       onSelectPack(selectedPack);
     }
@@ -109,6 +118,18 @@ export function PricingModal({ isOpen, onClose, onSelectPack, isLoading }: Prici
             Credits never expire. One-time purchase.
           </p>
         </div>
+
+        {showComingSoon && (
+          <div className="coming-soon-toast" onClick={() => setShowComingSoon(false)}>
+            <div className="coming-soon-toast-content">
+              <ZapIcon className="w-5 h-5" />
+              <div>
+                <strong>Coming Soon!</strong>
+                <p>Payments are being set up. Check back shortly.</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

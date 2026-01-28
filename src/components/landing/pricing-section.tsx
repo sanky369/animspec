@@ -40,11 +40,20 @@ const packs = [
   },
 ];
 
+// TODO: Remove PAYMENTS_ENABLED flag once Lemon Squeezy is approved
+const PAYMENTS_ENABLED = false;
+
 export function PricingSection() {
   const { user } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showComingSoon, setShowComingSoon] = useState(false);
 
   const handleBuyCredits = (packId: string) => {
+    if (!PAYMENTS_ENABLED) {
+      setShowComingSoon(true);
+      setTimeout(() => setShowComingSoon(false), 3000);
+      return;
+    }
     if (!user) {
       setShowAuthModal(true);
       return;
@@ -155,6 +164,18 @@ export function PricingSection() {
           Free accounts cannot use Precise mode. Purchase any pack to unlock.
         </p>
       </div>
+
+      {showComingSoon && (
+        <div className="coming-soon-toast" onClick={() => setShowComingSoon(false)}>
+          <div className="coming-soon-toast-content">
+            <ZapIcon className="w-5 h-5" />
+            <div>
+              <strong>Coming Soon!</strong>
+              <p>Payments are being set up. Check back shortly.</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <SignInModal
         isOpen={showAuthModal}
