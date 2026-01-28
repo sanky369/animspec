@@ -10,7 +10,7 @@ import {
   signOut as firebaseSignOut,
   sendPasswordResetEmail,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, getDocFromServer, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getAuthInstance, getGoogleProvider, getDbInstance } from '@/lib/firebase/client';
 import { COLLECTIONS, DEFAULT_FREE_CREDITS, type UserProfile } from '@/types/database';
 
@@ -224,8 +224,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshProfile = async () => {
     if (user) {
-      const userProfile = await fetchOrCreateProfile(user);
-      setProfile(userProfile);
+      // Force fetch from server to bypass cache (important after server-side credit deductions)
+      try {
+        const db = getDbInstance();
+        const profileRef = doc(db, COLLECTIONS.PROFILES, user.uid);
+        const profileSnap = await getDocFromServer(profileRef);
+
+        if (profileSnap.exists()) {
+          const data = profileSnap.data();
+          setProfile({
+            id: profileSnap.id,
+            email: data.email,
+            fullName: data.fullName,
+            avatarUrl: data.avatarUrl,
+            creditsBalance: data.creditsBalance,
+            creditsExpiresAt: data.creditsExpiresAt?.toDate() || null,
+            hasUsedFreeTrial: data.hasUsedFreeTrial,
+            isPaidUser: data.isPaidUser,
+            createdAt: data.createdAt?.toDate() || new Date(),
+            updatedAt: data.updatedAt?.toDate() || new Date(),
+          });
+        }
+      } catch (error) {
+        console.error('Error refreshing profile:', error);
+        // Fallback to cached fetch
+        const userProfile = await fetchOrCreateProfile(user);
+        setProfile(userProfile);
+      }
     }
   };
 
