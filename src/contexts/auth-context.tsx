@@ -24,7 +24,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
-  refreshToken: () => Promise<void>;
+  refreshToken: () => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -123,10 +123,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Refresh the session token (call before API requests to ensure fresh token)
-  const refreshToken = async () => {
+  // Returns the fresh token so callers can use it directly in Authorization header
+  const refreshToken = async (): Promise<string | null> => {
     if (user) {
+      const token = await user.getIdToken(true);
       await setSessionCookie(user, true);
+      return token;
     }
+    return null;
   };
 
   // Listen for auth state changes

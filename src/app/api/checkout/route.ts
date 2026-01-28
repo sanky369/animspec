@@ -13,10 +13,14 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify authentication
+    // Verify authentication - check Authorization header first, then cookie
+    const authHeader = request.headers.get('Authorization');
     const sessionCookie = request.cookies.get('__session')?.value;
+    const token = authHeader?.startsWith('Bearer ') 
+      ? authHeader.slice(7) 
+      : sessionCookie;
 
-    if (!sessionCookie) {
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -24,7 +28,7 @@ export async function POST(request: NextRequest) {
     let userEmail: string;
 
     try {
-      const decodedToken = await adminAuth.verifyIdToken(sessionCookie);
+      const decodedToken = await adminAuth.verifyIdToken(token);
       userId = decodedToken.uid;
       userEmail = decodedToken.email || '';
     } catch {

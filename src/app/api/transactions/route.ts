@@ -6,17 +6,21 @@ export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get the session token from cookies
+    // Get the session token from Authorization header or cookies
+    const authHeader = request.headers.get('Authorization');
     const sessionCookie = request.cookies.get('__session')?.value;
+    const token = authHeader?.startsWith('Bearer ') 
+      ? authHeader.slice(7) 
+      : sessionCookie;
 
-    if (!sessionCookie) {
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Verify the token
     let userId: string;
     try {
-      const decodedToken = await adminAuth.verifyIdToken(sessionCookie);
+      const decodedToken = await adminAuth.verifyIdToken(token);
       userId = decodedToken.uid;
     } catch {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 });

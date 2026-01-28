@@ -29,8 +29,11 @@ export default function AccountPage() {
       try {
         if (isLoading || !user) return;
         // Refresh token before fetching to ensure it's valid
-        await refreshToken();
-        const response = await fetch('/api/transactions', { credentials: 'include' });
+        const token = await refreshToken();
+        const response = await fetch('/api/transactions', { 
+          credentials: 'include',
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        });
         if (response.ok) {
           const data = await response.json();
           setTransactions(data.transactions || []);
@@ -52,10 +55,14 @@ export default function AccountPage() {
         return;
       }
       // Refresh token before checkout to ensure it's valid
-      await refreshToken();
+      // Use token in Authorization header as backup (cookie might not update in time)
+      const token = await refreshToken();
       const response = await fetch('/api/checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
         credentials: 'include',
         body: JSON.stringify({ packType }),
       });
