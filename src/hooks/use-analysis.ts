@@ -15,9 +15,10 @@ import { extractFrames } from '@/lib/ffmpeg/extract-frames';
 import { createFrameGrid } from '@/lib/ffmpeg/create-grid';
 import { createSseParser } from '@/lib/streaming/sse';
 
-// 4MB threshold for using R2 (Vercel body limit is ~4.5MB)
-// Files >4MB are uploaded to R2, server fetches and converts to base64
-const R2_UPLOAD_THRESHOLD = 4 * 1024 * 1024;
+// 4MB threshold - Vercel body limit is ~4.5MB
+// Gemini: files >4MB use Gemini Files API (supports up to 100MB)
+// Kimi: files >4MB use R2 → server fetches → base64
+const VERCEL_BODY_LIMIT = 4 * 1024 * 1024;
 const KEYFRAME_EXTRACTION_TIMEOUT_MS = 15000;
 const KEYFRAMES_ENABLED = process.env.NEXT_PUBLIC_DISABLE_KEYFRAMES !== 'true';
 
@@ -164,9 +165,34 @@ export function useAnalysis(): UseAnalysisReturn {
           formData.append('frameGridColumns', frameGrid.columns.toString());
         }
 
-        // For files >4MB, use R2 to bypass Vercel's body limit
-        // Server fetches from R2 and converts to base64 for AI models
-        if (file.size > R2_UPLOAD_THRESHOLD) {
+        const isKimi = config.quality === 'kimi';
+        
+        // For files >4MB, need to bypass Vercel's body limit
+        // Gemini: use Gemini Files API (native support up to 100MB)
+        // Kimi: use R2 → server fetches → base64
+        if (file.size > VERCEL_BODY_LIMIT && !isKimi) {
+          // Gemini Files API path
+          setProgress({ step: 'uploading', message: 'Uploading video to Gemini...' });
+
+          const uploadFormData = new FormData();
+          uploadFormData.append('file', file);
+
+          const uploadResponse = await fetch('/api/upload', {
+            method: 'POST',
+            body: uploadFormData,
+          });
+
+          if (!uploadResponse.ok) {
+            const errorData = await uploadResponse.json();
+            throw new Error(errorData.error || 'Upload failed');
+          }
+
+          const uploadResult = await uploadResponse.json();
+
+          formData.append('fileUri', uploadResult.uri);
+          formData.append('fileMimeType', uploadResult.mimeType);
+        } else if (file.size > VERCEL_BODY_LIMIT && isKimi) {
+          // R2 path for Kimi (needs base64)
           // For medium files (4-20MB), use R2 to bypass Vercel body limit
           setProgress({ step: 'uploading', message: 'Uploading video...' });
 
