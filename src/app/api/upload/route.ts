@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const maxDuration = 300; // 300 seconds timeout
 
 export async function POST(request: NextRequest) {
   try {

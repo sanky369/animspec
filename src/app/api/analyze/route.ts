@@ -12,7 +12,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import type { OutputFormat, QualityLevel, TriggerContext, VideoMetadata } from '@/types/analysis';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60; // 60 seconds timeout
+export const maxDuration = 300; // 300 seconds timeout for Kimi thinking mode
 
 function parseNumber(value: FormDataEntryValue | null): number | null {
   if (value === null) return null;

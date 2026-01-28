@@ -7,16 +7,15 @@ const KIMI_MODEL = 'kimi-k2.5';
 const KIMI_BASE_URL = 'https://api.moonshot.ai/v1';
 
 // Config for Kimi K2.5
-// Thinking mode (temp=1.0) gives best quality but is slow (can timeout on Vercel 60s limit)
-// Instant mode (temp=0.6) is faster but lower quality
-// Using Instant mode by default for Vercel compatibility
+// Thinking mode (temp=1.0) gives best quality with deep reasoning
+// Vercel Pro/Enterprise supports up to 300s timeout
 const KIMI_CONFIG = {
-  temperature: 0.6,  // Using Instant mode for speed (Vercel 60s timeout)
+  temperature: 1.0,  // Thinking mode requires temp=1.0
   top_p: 0.95,       // Recommended by official Moonshot docs
   max_tokens: 8192,
   // Set to true to use Instant mode (faster, no reasoning traces)
   // Set to false for Thinking mode (slower but higher quality)
-  useInstantMode: true,
+  useInstantMode: false,
 };
 
 export interface AnalysisImage {
