@@ -215,12 +215,14 @@ export function useAnalysis(): UseAnalysisReturn {
 
         if (!response.ok) {
           let errorMessage = 'Analysis failed';
+          // Read response as text first, then try to parse as JSON
+          const text = await response.text().catch(() => '');
+          
           try {
-            const errorData = await response.json();
+            const errorData = JSON.parse(text);
             errorMessage = errorData.error || errorMessage;
           } catch {
-            // Response might not be JSON (e.g., Vercel/nginx error pages)
-            const text = await response.text().catch(() => '');
+            // Response is not JSON (e.g., Vercel/nginx error pages)
             if (text.includes('Request Entity Too Large') || response.status === 413) {
               errorMessage = 'Video file is too large. Please try a smaller file.';
             } else if (response.status === 429) {
@@ -228,7 +230,7 @@ export function useAnalysis(): UseAnalysisReturn {
             } else if (response.status === 401) {
               errorMessage = 'Session expired. Please refresh the page and try again.';
             } else if (text) {
-              errorMessage = text.slice(0, 100);
+              errorMessage = text.slice(0, 200);
             }
           }
           throw new Error(errorMessage);
