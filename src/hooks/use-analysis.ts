@@ -165,8 +165,11 @@ export function useAnalysis(): UseAnalysisReturn {
           formData.append('frameGridColumns', frameGrid.columns.toString());
         }
 
-        // For very large files (>20MB), use Gemini Files API
-        if (file.size > FILES_API_THRESHOLD) {
+        // Kimi only supports inline base64 (no Files API)
+        // For Gemini models with very large files (>20MB), use Gemini Files API
+        const isKimi = config.quality === 'kimi';
+        
+        if (!isKimi && file.size > FILES_API_THRESHOLD) {
           setProgress({ step: 'uploading', message: 'Uploading video to Gemini...' });
 
           // Upload to Gemini Files API first
@@ -189,6 +192,8 @@ export function useAnalysis(): UseAnalysisReturn {
           formData.append('fileUri', uploadResult.uri);
           formData.append('fileMimeType', uploadResult.mimeType);
         } else if (file.size > R2_UPLOAD_THRESHOLD) {
+          // For files >4MB (or any Kimi file >4MB), use R2 to bypass Vercel body limit
+          // R2 fetches the video server-side and converts to base64 for Kimi
           // For medium files (4-20MB), use R2 to bypass Vercel body limit
           setProgress({ step: 'uploading', message: 'Uploading video...' });
 
