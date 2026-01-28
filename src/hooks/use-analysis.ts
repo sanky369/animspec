@@ -214,8 +214,24 @@ export function useAnalysis(): UseAnalysisReturn {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Analysis failed');
+          let errorMessage = 'Analysis failed';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+          } catch {
+            // Response might not be JSON (e.g., Vercel/nginx error pages)
+            const text = await response.text().catch(() => '');
+            if (text.includes('Request Entity Too Large') || response.status === 413) {
+              errorMessage = 'Video file is too large. Please try a smaller file.';
+            } else if (response.status === 429) {
+              errorMessage = 'Rate limit exceeded. Please wait a moment and try again.';
+            } else if (response.status === 401) {
+              errorMessage = 'Session expired. Please refresh the page and try again.';
+            } else if (text) {
+              errorMessage = text.slice(0, 100);
+            }
+          }
+          throw new Error(errorMessage);
         }
 
         // Read streaming response
