@@ -1,4 +1,10 @@
-export type OutputFormat = 'natural' | 'css' | 'gsap' | 'framer' | 'remotion';
+export type OutputFormat =
+  | 'clone_ui_animation'
+  | 'clone_component'
+  | 'clone_landing_page'
+  | 'extract_design_tokens'
+  | 'remotion_demo_template'
+  | 'qa_clone_checklist';
 
 export type QualityLevel = 'balanced' | 'precise' | 'kimi';
 

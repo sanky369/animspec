@@ -16,7 +16,7 @@ export default function DashboardPage() {
   const { profile, refreshProfile, refreshToken } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [config, setConfig] = useState<AnalysisConfig>({
-    format: 'natural',
+    format: 'clone_ui_animation',
     quality: 'balanced',
     triggerContext: null,
   });

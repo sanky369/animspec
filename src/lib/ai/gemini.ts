@@ -74,7 +74,7 @@ export async function analyzeVideoWithGemini(
   const client = new GoogleGenAI({ apiKey });
 
   const model = QUALITY_TO_MODEL[quality];
-  const systemPrompt = buildAnalysisPrompt(format, triggerContext, videoMetadata);
+  const systemPrompt = buildAnalysisPrompt(format, triggerContext, videoMetadata, quality);
   const userPrompt = buildUserPrompt();
   const promptText = buildPromptWithImages(systemPrompt, userPrompt, analysisImages);
   const modelConfig = QUALITY_TO_CONFIG[quality];
@@ -125,7 +125,7 @@ export async function analyzeVideoWithGeminiFile(
   const client = new GoogleGenAI({ apiKey });
 
   const model = QUALITY_TO_MODEL[quality];
-  const systemPrompt = buildAnalysisPrompt(format, triggerContext, videoMetadata);
+  const systemPrompt = buildAnalysisPrompt(format, triggerContext, videoMetadata, quality);
   const userPrompt = buildUserPrompt();
   const promptText = buildPromptWithImages(systemPrompt, userPrompt, analysisImages);
   const modelConfig = QUALITY_TO_CONFIG[quality];
@@ -172,7 +172,7 @@ export async function* analyzeVideoWithGeminiStream(
   const client = new GoogleGenAI({ apiKey });
 
   const model = QUALITY_TO_MODEL[quality];
-  const systemPrompt = buildAnalysisPrompt(format, triggerContext, videoMetadata);
+  const systemPrompt = buildAnalysisPrompt(format, triggerContext, videoMetadata, quality);
   const userPrompt = buildUserPrompt();
   const promptText = buildPromptWithImages(systemPrompt, userPrompt, analysisImages);
   const modelConfig = QUALITY_TO_CONFIG[quality];
@@ -219,7 +219,7 @@ export async function* analyzeVideoWithGeminiFileStream(
   const client = new GoogleGenAI({ apiKey });
 
   const model = QUALITY_TO_MODEL[quality];
-  const systemPrompt = buildAnalysisPrompt(format, triggerContext, videoMetadata);
+  const systemPrompt = buildAnalysisPrompt(format, triggerContext, videoMetadata, quality);
   const userPrompt = buildUserPrompt();
   const promptText = buildPromptWithImages(systemPrompt, userPrompt, analysisImages);
   const modelConfig = QUALITY_TO_CONFIG[quality];

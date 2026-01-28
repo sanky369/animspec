@@ -116,7 +116,7 @@ export async function analyzeVideoWithKimi(
 
   const client = getKimiClient();
 
-  const systemPrompt = buildAnalysisPrompt(format, triggerContext, videoMetadata);
+  const systemPrompt = buildAnalysisPrompt(format, triggerContext, videoMetadata, 'kimi');
   const userPrompt = buildUserPrompt();
   const promptText = buildPromptWithImages(systemPrompt, userPrompt, analysisImages);
 
@@ -167,7 +167,7 @@ export async function* analyzeVideoWithKimiStream(
 
   const client = getKimiClient();
 
-  const systemPrompt = buildAnalysisPrompt(format, triggerContext, videoMetadata);
+  const systemPrompt = buildAnalysisPrompt(format, triggerContext, videoMetadata, 'kimi');
   const userPrompt = buildUserPrompt();
   const promptText = buildPromptWithImages(systemPrompt, userPrompt, analysisImages);
 

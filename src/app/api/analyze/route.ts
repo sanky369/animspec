@@ -10,6 +10,7 @@ import { adminAuth, adminDb, adminStorage } from '@/lib/firebase/admin';
 import { COLLECTIONS, CREDIT_COSTS, MAX_ANALYSES_PER_USER } from '@/types/database';
 import { FieldValue } from 'firebase-admin/firestore';
 import type { OutputFormat, QualityLevel, TriggerContext, VideoMetadata } from '@/types/analysis';
+import { extractOverview } from '@/lib/ai/output-parsers';
 import { fetchAsBase64, isR2Configured, deleteObject } from '@/lib/storage/r2';
 
 export const runtime = 'nodejs';
@@ -351,13 +352,8 @@ export async function POST(request: NextRequest) {
 
         // If authenticated, deduct credits and save analysis
         if (isAuthenticated && userId) {
-          // Parse output to extract overview and code
-          const overviewMatch = fullResult.match(/## Overview[\s\S]*?(?=##|$)/);
-          const overview = overviewMatch ? overviewMatch[0].trim() : '';
-
-          // Extract code block
-          const codeMatch = fullResult.match(/```[\w]*\n([\s\S]*?)```/);
-          const code = codeMatch ? codeMatch[1].trim() : fullResult;
+          const overview = extractOverview(fullResult);
+          const code = fullResult;
 
           const result = await deductCreditsAndSaveAnalysis(
             userId,

@@ -17,7 +17,7 @@ export function DemoSection() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [demoUsed, setDemoUsed] = useState(false);
   const [config, setConfig] = useState<AnalysisConfig>({
-    format: 'natural',
+    format: 'clone_ui_animation',
     quality: 'balanced', // Demo uses balanced (Gemini 3 Flash) for better quality
     triggerContext: null,
   });

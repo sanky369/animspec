@@ -56,7 +56,7 @@ export function UploadZone({ onFileSelect, disabled }: UploadZoneProps) {
       </div>
 
       <h3 className="upload-title">
-        {isDragActive ? 'Drop your video here' : 'Drop your animation video'}
+        {isDragActive ? 'Drop your video here' : 'Drop your recorded video'}
       </h3>
       <p className="upload-subtitle">MP4, WebM, or MOV up to 100MB</p>
       <p className="upload-hint">or click to browse</p>

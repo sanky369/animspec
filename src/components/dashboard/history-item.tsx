@@ -35,11 +35,12 @@ function getQualityLabel(quality: string): string {
 
 function getFormatLabel(format: string): string {
   switch (format) {
-    case 'natural': return 'Natural';
-    case 'css': return 'CSS';
-    case 'gsap': return 'GSAP';
-    case 'framer': return 'Framer';
-    case 'remotion': return 'Remotion';
+    case 'clone_ui_animation': return 'UI Animation';
+    case 'clone_component': return 'UI Component';
+    case 'clone_landing_page': return 'Landing Page';
+    case 'extract_design_tokens': return 'Style & Tokens';
+    case 'remotion_demo_template': return 'Remotion Template';
+    case 'qa_clone_checklist': return 'QA Checklist';
     default: return format;
   }
 }

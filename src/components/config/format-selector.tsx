@@ -11,34 +11,40 @@ interface FormatSelectorProps {
 
 const FORMAT_OPTIONS = [
   {
-    id: 'natural' as const,
-    label: 'Natural Language',
-    icon: FileTextIcon,
-    useCase: 'Best for AI coding agents like Claude Code, Cursor, or Copilot',
-  },
-  {
-    id: 'css' as const,
-    label: 'CSS Keyframes',
-    icon: CSSIcon,
-    useCase: 'Simple web animations without JavaScript dependencies',
-  },
-  {
-    id: 'gsap' as const,
-    label: 'GSAP Timeline',
+    id: 'clone_ui_animation' as const,
+    label: 'Clone UI Animation',
     icon: JSIcon,
-    useCase: 'Complex sequences with precise timeline control',
+    useCase: 'Extract motion + timing + easing and a practical implementation recipe',
   },
   {
-    id: 'framer' as const,
-    label: 'Framer Motion',
+    id: 'clone_component' as const,
+    label: 'Clone UI Component',
     icon: ReactIcon,
-    useCase: 'React apps with declarative, spring-based animations',
+    useCase: 'Generate a reusable React + Tailwind component matching the video',
   },
   {
-    id: 'remotion' as const,
-    label: 'Remotion',
+    id: 'clone_landing_page' as const,
+    label: 'Clone Landing Page',
+    icon: ReactIcon,
+    useCase: 'Create a landing page/section skeleton that matches layout + styling',
+  },
+  {
+    id: 'extract_design_tokens' as const,
+    label: 'Extract Style & Tokens',
+    icon: CSSIcon,
+    useCase: 'Pull palette, typography, radius, shadows, spacing + reusable tokens',
+  },
+  {
+    id: 'remotion_demo_template' as const,
+    label: 'Reuse Demo Style (Remotion)',
     icon: VideoIcon,
-    useCase: 'AI-generated video animations using Claude Code + /remotion-script-writer',
+    useCase: 'Turn the video into a reusable Remotion scene + motion template',
+  },
+  {
+    id: 'qa_clone_checklist' as const,
+    label: 'QA Checklist for Perfect Clone',
+    icon: FileTextIcon,
+    useCase: 'Acceptance criteria + measurements to verify your clone matches',
   },
 ];
 
@@ -47,7 +53,7 @@ export function FormatSelector({ value, onChange, disabled }: FormatSelectorProp
 
   return (
     <div className="config-section">
-      <label className="config-label">Output Format</label>
+      <label className="config-label">Choose Use Case</label>
       <div className="format-grid">
         {FORMAT_OPTIONS.map((option) => {
           const Icon = option.icon;

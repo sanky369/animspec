@@ -1,6 +1,6 @@
-import type { OutputFormat, TriggerContext, VideoMetadata } from '@/types/analysis';
+import type { OutputFormat, QualityLevel, TriggerContext, VideoMetadata } from '@/types/analysis';
 
-const BASE_SYSTEM_PROMPT = `You are an expert animation analyst with a keen eye for detail. Your task is to analyze video/image sequences showing UI animations and extract precise, implementable animation specifications. Capture EVERY visual detail—even subtle ones that might seem minor.
+const BASE_SYSTEM_PROMPT = `You are an expert animation analyst cum UI & Interaction Designer with a keen eye for detail. Your task is to analyze video/image sequences showing UI animations and extract precise, implementable animation specifications. Capture EVERY visual detail—even subtle ones that might seem minor.
 
 ## ANALYSIS PROCESS
 
@@ -184,515 +184,239 @@ If trigger cannot be determined, output:
 **Trigger:** unknown (recommend: provide trigger context)`;
 
 const FORMAT_PROMPTS: Record<OutputFormat, string> = {
-  natural: `
-## OUTPUT FORMAT: Natural Language (for AI Coding Agents)
+  clone_ui_animation: `
+## OUTPUT: CLONE PACK (UI Animation)
 
-Provide a detailed description in this format:
+Produce a practical, user-friendly cloning pack that a developer can implement.
+
+Required structure:
+
+## Overview
+- 1-2 sentences summarizing what the animation does and where it is used.
 
 **Animation Overview:**
-[Brief description of what the animation achieves]
+- A single crisp sentence describing the visible effect.
 
-**Elements:**
-1. [Element 1 name/description]
-   - Initial state: [position, opacity, scale, colors, shadows, etc.]
-   - Final state: [complete end state with all changed properties]
-   - Motion: [describe the movement path and behavior]
+## Trigger
+- Use user-provided trigger context if present; otherwise infer and state confidence.
 
-**Visual Properties:**
-- Colors: [list all colors with hex codes, e.g., background: #3B82F6 → #1D4ED8]
-- Gradients: [if any, specify type, angle, and color stops]
-- Shadows: [box-shadow values, e.g., 0 4px 6px rgba(0,0,0,0.1) → 0 10px 20px rgba(0,0,0,0.2)]
-- Border radius: [if changes, e.g., 8px → 16px]
-- Borders: [width, style, color if animated]
+## Element Map
+List every animated/affected element:
+- Name (human label)
+- Suggested selector (e.g., .cta-button, [data-id="..."])
+- Visual description (size, shape, colors)
+- Layering notes (z-index / overlap) if relevant
 
-**Typography** (if text animates):
-- Font size: [from → to, e.g., 16px → 18px]
-- Font weight: [from → to, e.g., 400 → 600]
-- Letter spacing: [if changes]
-- Text color: [hex values]
-- Text effects: [reveal, clip, shadow animations]
+## Motion Spec (Precise)
+For each element, specify:
+- Initial state: translate/scale/rotate/opacity/colors/shadows/radius
+- Final state: same properties, exact values
+- Timing: duration, delay, phases (keyframes), stagger pattern (if any)
+- Easing: provide CSS cubic-bezier or spring(stiffness/damping/mass)
 
-**Subtle Details:**
-[List any micro-interactions, small movements, or polish effects that add to the feel]
+Use exact units and hex colors. If estimated, label it.
 
-**Timing:**
-- Total duration: [X seconds]
-- Easing: [describe the feel AND provide CSS easing or spring values]
-- Stagger: [if multiple elements, describe the delay pattern]
-- Per-property timing: [if different properties have different durations]
+## Implementation Recipe (Pick ONE)
+Choose the simplest implementable approach:
+- If doable with CSS: provide CSS @keyframes + minimal HTML class hooks
+- Else: provide GSAP timeline pseudocode
+- Else (if clearly React UI): provide Framer Motion variants pseudocode
 
-**Keyframes:**
-- 0%: [complete state with all animated properties]
-- [X]%: [intermediate states if applicable]
-- 100%: [complete final state]
+Include at least one code block for the chosen approach. Keep it concise but runnable.
 
-**Trigger:** [inferred trigger or user-provided]
+## Validation Checklist
+- 6-10 bullet points verifying pixel/motion accuracy (timing, easing feel, shadow/radius, micro-bounce).`,
 
-**Implementation Notes:**
-[Specific considerations, CSS properties to use, performance tips, accessibility notes]`,
+  clone_component: `
+## OUTPUT: CLONE PACK (UI Component)
 
-  css: `
-## OUTPUT FORMAT: CSS Keyframes
+Goal: reconstruct the UI component visible in the video as a reusable React component.
 
-Provide CSS code with exact values for ALL visual properties:
+Required structure:
 
-\`\`\`css
-/* Animation: [brief description] */
+## Overview
+- 1-2 sentences describing the component and its purpose.
 
-@keyframes animationName {
-  0% {
-    /* Initial state - include ALL animated properties */
-    transform: translateY(0) scale(1);
-    opacity: 1;
-    background-color: #3B82F6;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
-    /* Add color, shadow, border, filter properties as needed */
-  }
-  /* intermediate keyframes with exact percentages */
-  100% {
-    /* Final state - mirror all properties from 0% */
-    transform: translateY(-4px) scale(1.02);
-    opacity: 1;
-    background-color: #1D4ED8;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-    border-radius: 12px;
-  }
-}
+## Visual & Layout Notes
+- Brief bullet list: spacing, alignment, typography, colors, radius, shadows, states.
 
-.element {
-  /* Base styles with initial visual properties */
-  background-color: #3B82F6;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+## Props API
+- List props with types and defaults (e.g., variant, size, state).
 
-  animation: animationName [duration] [easing] [delay] [iteration] [direction] [fill-mode];
-}
-
-/* Trigger-specific selectors if applicable */
-.element:hover,
-.element.active {
-  /* trigger states with exact values */
-}
-
-/* Typography animations if text is involved */
-.text-element {
-  font-size: 16px;
-  font-weight: 400;
-  color: #1F2937;
-  /* transition properties */
-}
-\`\`\`
-
-IMPORTANT: Use exact hex colors, precise shadow values, and specific measurements. Never use generic terms.`,
-
-  gsap: `
-## OUTPUT FORMAT: GSAP Timeline
-
-Provide GSAP JavaScript code with exact visual property values:
-
-\`\`\`javascript
-import gsap from 'gsap';
-
-// Animation: [brief description]
-const tl = gsap.timeline({
-  defaults: { ease: 'power2.out' }
-});
-
-tl.fromTo('.element',
-  {
-    // From state - exact values
-    y: 0,
-    scale: 1,
-    opacity: 1,
-    backgroundColor: '#3B82F6',
-    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-    borderRadius: 8,
-  },
-  {
-    // To state - exact values
-    y: -4,
-    scale: 1.02,
-    opacity: 1,
-    backgroundColor: '#1D4ED8',
-    boxShadow: '0 10px 20px rgba(0, 0, 0, 0.2)',
-    borderRadius: 12,
-    duration: 0.3,
-    ease: 'power2.out',
-  }
-)
-
-// Typography animations (if text is involved)
-.to('.text-element', {
-  fontSize: '18px',
-  fontWeight: 600,
-  color: '#1F2937',
-  letterSpacing: '0.02em',
-  duration: 0.2,
-}, '<') // simultaneous with previous
-
-// Subtle micro-interactions
-.to('.icon', {
-  rotation: 5,
-  scale: 1.1,
-  duration: 0.15,
-  ease: 'back.out(1.7)',
-}, '-=0.1')
-
-// Stagger example for multiple elements
-.to('.list-item', {
-  y: 0,
-  opacity: 1,
-  stagger: 0.05,
-  duration: 0.3,
-});
-
-// Trigger binding
-// document.querySelector('.trigger').addEventListener('click', () => tl.restart());
-\`\`\`
-
-IMPORTANT: Include exact hex colors, shadow values, and all subtle movements. Use GSAP's color/shadow tweening capabilities.`,
-
-  framer: `
-## OUTPUT FORMAT: Framer Motion (React)
-
-Provide Framer Motion JSX code with exact visual property values:
+## Code (ONE FILE)
+Return EXACTLY ONE TSX code block containing a single React component using Tailwind classes.
+Constraints:
+- Single file, export function ComponentName()
+- No external UI libraries (no shadcn, Radix, Chakra, etc.)
+- Include keyboard/focus styles (accessibility)
+- Use Tailwind only (no separate CSS file)
+- For animation: prefer CSS transitions/keyframes; use Framer Motion only if the motion truly requires spring physics or gesture handling
 
 \`\`\`tsx
-import { motion, type Variants, type Transition } from 'framer-motion';
+// ... single component file ...
+\`\`\``,
 
-// Animation: [brief description]
+  clone_landing_page: `
+## OUTPUT: CLONE PACK (Landing Page)
 
-const variants: Variants = {
-  initial: {
-    // Exact initial values
-    y: 0,
-    scale: 1,
-    opacity: 1,
-    backgroundColor: '#3B82F6',
-    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-    borderRadius: 8,
-  },
-  animate: {
-    // Exact final values
-    y: -4,
-    scale: 1.02,
-    opacity: 1,
-    backgroundColor: '#1D4ED8',
-    boxShadow: '0 10px 20px rgba(0, 0, 0, 0.2)',
-    borderRadius: 12,
-  },
-  hover: {
-    // Hover state with subtle effects
-    scale: 1.05,
-    boxShadow: '0 14px 28px rgba(0, 0, 0, 0.25)',
-  },
-  tap: {
-    // Press feedback
-    scale: 0.98,
-  },
+Goal: recreate the landing page/section layout from the video as a React + Tailwind skeleton.
+
+Required structure:
+
+## Overview
+- 1-2 sentences describing what page/section this is.
+
+## Section Inventory
+- List sections in order (Hero, Logos, Features, Testimonials, Pricing, CTA, Footer, etc.)
+- For each: key elements + layout notes
+
+## Code (ONE FILE)
+Return EXACTLY ONE TSX code block that exports a React component (or Next.js page) using Tailwind.
+Constraints:
+- One file only
+- Use semantic HTML
+- Use responsive layout (mobile-first + md/lg breakpoints)
+- Use Tailwind only (no separate CSS file)
+- Include placeholder copy and placeholder images (with clear TODO comments)
+
+\`\`\`tsx
+// ... single landing page/section file ...
+\`\`\``,
+
+  extract_design_tokens: `
+## OUTPUT: CLONE PACK (Style & Design Tokens)
+
+Goal: extract a reusable style guide/tokens from the video so the user can clone the "look" consistently.
+
+Required structure:
+
+## Overview
+- 1-2 sentences on the style direction (e.g., dark SaaS, glassy, minimal, playful).
+
+## Palette (Exact)
+Provide a table:
+- Role (bg, surface, border, text primary, text secondary, accent, danger, success, etc.)
+- Hex/RGBA
+- Where it appears
+
+## Typography
+- Font style guess (with confidence)
+- Sizes/weights/line-heights
+- Headings/body/captions/labels mapping
+
+## Shape & Depth
+- Radius scale (sm/md/lg/pill)
+- Shadow scale (low/med/high) with exact box-shadow values
+- Borders (1px alpha borders, etc.)
+- Blur/backdrop-filter if present
+
+## Token Output
+Provide BOTH:
+1) CSS variables block (code block)
+2) A JSON token block (code block)
+
+## Optional: Tailwind Mapping
+- Suggest Tailwind config tokens (as a code block) if it helps.
+
+Label uncertain values as estimates.`,
+
+  remotion_demo_template: `
+## OUTPUT: CLONE PACK (Remotion Demo Template)
+
+Goal: convert this video into a reusable Remotion template you can reuse with different product assets.
+
+Required structure:
+
+## Overview
+- Video type (product demo / explainer / ad / walkthrough)
+- Mood/energy
+- Target duration and aspect ratio
+
+## Scene Plan
+Table:
+| Scene | Time | Purpose | What appears | Motion style | Transition |
+
+## Motion Style Guide
+- Primary easing pattern (cubic-bezier or spring params)
+- Timing rhythm (fast/medium/slow)
+- Signature moves (2-5 repeatable patterns)
+- Stagger rules (typical delay)
+
+## Visual Style Guide
+- Exact palette roles + hex
+- Typography rules
+- Shadow/radius/border conventions
+- Background treatment (gradient/noise/blur)
+
+## Remotion Build Notes
+- Suggested component breakdown (e.g., HeroReveal, FeatureCallout, CTA)
+- Remotion APIs to use (Sequence, spring, interpolate)
+- Any performance notes
+
+## Template Summary (for an AI coding agent)
+Provide a short copy-paste "TEMPLATE SUMMARY" block that a Remotion script writer can follow.`,
+
+  qa_clone_checklist: `
+## OUTPUT: CLONE PACK (QA Checklist)
+
+Goal: ensure the final implementation perfectly matches the video.
+
+Required structure:
+
+## Overview
+- What is being cloned + primary success criterion.
+
+## Measurement Setup
+- How to measure pixel distances, timing, easing feel, and color accuracy
+- What to capture (screen recordings, devtools, frame stepping)
+
+## Animation QA Checklist (if motion exists)
+- Timing: total duration, per-phase duration, delays
+- Easing: verify deceleration/overshoot, spring settle time
+- Spatial: start/end positions in px, transform-origin
+- Visual: colors, shadows, radius changes, blur/glow
+- Interaction: hover/click/focus behavior, touch behavior
+
+## Layout QA Checklist (if layout exists)
+- Responsive breakpoints match
+- Spacing scale, alignment, typography hierarchy
+- Contrast/accessibility checks
+
+## Acceptance Criteria
+- 8-12 concrete pass/fail bullets (with tolerances like ±2px, ±50ms)` ,
 };
 
-// Typography variants (if text animates)
-const textVariants: Variants = {
-  initial: {
-    fontSize: '16px',
-    fontWeight: 400,
-    color: '#6B7280',
-    letterSpacing: '0em',
-  },
-  animate: {
-    fontSize: '18px',
-    fontWeight: 600,
-    color: '#1F2937',
-    letterSpacing: '0.02em',
-  },
-};
-
-const transition: Transition = {
-  duration: 0.3,
-  ease: [0.4, 0, 0.2, 1],
-  // For spring physics:
-  // type: 'spring',
-  // stiffness: 300,
-  // damping: 24,
-  // mass: 1,
-};
-
-export function AnimatedComponent() {
-  return (
-    <motion.div
-      variants={variants}
-      initial="initial"
-      animate="animate"
-      whileHover="hover"
-      whileTap="tap"
-      transition={transition}
-      style={{
-        // Base styles
-        backgroundColor: '#3B82F6',
-        borderRadius: 8,
-      }}
-    >
-      <motion.span variants={textVariants}>
-        {/* Text content */}
-      </motion.span>
-    </motion.div>
-  );
-}
-
-// For staggered children
-const containerVariants: Variants = {
-  animate: {
-    transition: {
-      staggerChildren: 0.05,
-      delayChildren: 0.1,
-    },
-  },
-};
-\`\`\`
-
-IMPORTANT: Include exact hex colors (#RRGGBB), precise shadow values, typography properties, and all micro-interactions.`,
-
-  remotion: `
-## OUTPUT FORMAT: Remotion Video Template (for AI Coding Agents)
-
-Analyze this video and extract a **reusable animation template** that captures:
-1. **Animation Structure** - Scene breakdown, timing, transitions
-2. **Motion Patterns** - How elements animate, easing styles, camera movements
-3. **Visual Style Guide** - Exact colors, typography, shadows, and styling
-
-This template allows users to recreate the same animation style for their own products using the \`/remotion-script-writer\` skill in Claude Code.
-
----
-
-### VIDEO TEMPLATE OVERVIEW
-
-**Video Type:** [Identify the category]
-- Product Demo / App Walkthrough / Feature Showcase / Explainer / Testimonial / Launch Announcement / Social Ad / Tutorial / Comparison / Brand Story
-
-**Overall Style:** [Describe the visual aesthetic]
-- e.g., "Modern SaaS with floating UI elements", "Cinematic product reveal with dramatic lighting", "Playful and bouncy with bold colors", "Minimalist with subtle movements"
-
-**Mood/Energy:** [Characterize the feel]
-- Professional / Playful / Dramatic / Elegant / Energetic / Calm / Techy / Warm
-
-**Target Duration:** [X] seconds
-
-**Aspect Ratio:** [16:9 / 9:16 / 1:1 / 4:5] - [Landscape / Portrait / Square]
-
----
-
-### SCENE BREAKDOWN
-
-Break down the video into distinct scenes/acts. For each scene:
-
-**Scene [N]: [Scene Name]**
-- **Duration:** [X-Y seconds]
-- **Purpose:** [What this scene accomplishes - intro, reveal, highlight, CTA, etc.]
-- **What's Shown:** [Describe what appears on screen conceptually]
-- **Key Motion:** [Primary animation happening]
-- **Transition In:** [How this scene enters - cut, fade, slide, zoom, etc.]
-- **Transition Out:** [How this scene exits]
-
-Example format:
-| Scene | Time | Purpose | Key Elements | Motion Style |
-|-------|------|---------|--------------|--------------|
-| 1 | 0-2s | Hook/Intro | Logo, tagline | Fade in with scale |
-| 2 | 2-5s | Product Reveal | Hero product shot | Zoom in, float up |
-| 3 | 5-8s | Feature Highlights | UI callouts, icons | Stagger in from sides |
-| 4 | 8-10s | CTA | Action text, button | Pulse, glow effect |
-
----
-
-### CAMERA & PERSPECTIVE
-
-**Camera Movement Patterns:**
-- Static / Pan (L→R, R→L) / Tilt (Up, Down) / Zoom (In, Out) / Orbit / Dolly / Parallax layers
-- Describe the primary camera behavior and any notable movements
-
-**Perspective Style:**
-- Flat 2D / Isometric / 3D with depth / Floating layers / Parallax scrolling
-
-**Depth & Layering:**
-- How many visual layers? (foreground, midground, background)
-- How is depth created? (shadows, blur, scale, overlap)
-
----
-
-### MOTION STYLE GUIDE
-
-**Animation Character:** [Describe the overall motion feel]
-- Smooth & elegant / Snappy & quick / Bouncy & playful / Cinematic & slow / Mechanical & precise
-
-**Primary Easing Pattern:**
-- ease-out (fast start, smooth stop) - feels responsive
-- ease-in-out (smooth both ends) - feels polished
-- spring/bounce (overshoot) - feels playful
-- linear (constant) - feels mechanical
-
-**Timing Rhythm:**
-- Fast cuts (< 1s per element) / Medium pace (1-2s) / Slow & deliberate (> 2s)
-- Describe the pacing pattern (e.g., "Slow build up, quick hits in middle, slow close")
-
-**Stagger Patterns:**
-- How do multiple elements animate in? (all at once, sequential, wave, random)
-- Typical stagger delay between elements
-
-**Signature Motions:** [List recurring animation patterns]
-- e.g., "Elements float up while fading in", "Scale bounce on appearance", "Slide in from edges", "Rotate while scaling"
-
----
-
-### ELEMENT ANIMATION PATTERNS
-
-For each type of element that appears, describe HOW it animates (not exact values):
-
-**Text Elements:**
-- Entrance: [fade in / slide up / typewriter / word-by-word / blur in]
-- Emphasis: [scale pulse / color shift / underline draw / glow]
-- Exit: [fade out / slide away / blur out]
-
-**Product/Hero Images:**
-- Entrance: [zoom in / float up / 3D rotate in / reveal wipe]
-- Behavior: [subtle float / rotate slowly / parallax on scroll]
-- Exit: [zoom out / fade / slide]
-
-**UI Components (buttons, cards, screens):**
-- Entrance: [pop in / slide from edge / scale up / flip in]
-- Hover/Focus states: [lift with shadow / scale slightly / glow]
-- Exit: [reverse of entrance / fade]
-
-**Icons/Graphics:**
-- Entrance: [bounce in / draw on / fade with scale / rotate in]
-- Behavior: [pulse / spin / wiggle]
-
-**Backgrounds:**
-- Behavior: [gradient shift / particle movement / subtle zoom / color transition]
-
----
-
-### VISUAL STYLE GUIDE
-
-Extract the exact visual properties from the video:
-
-**Color Palette:**
-| Role | Hex Code | Usage |
-|------|----------|-------|
-| Primary | #[XXXXXX] | Main accent, CTAs, highlights |
-| Secondary | #[XXXXXX] | Supporting elements |
-| Background | #[XXXXXX] | Canvas/container background |
-| Text Primary | #[XXXXXX] | Headings, important text |
-| Text Secondary | #[XXXXXX] | Body text, captions |
-| Accent | #[XXXXXX] | Special highlights, hover states |
-| [Additional colors as needed] | #[XXXXXX] | [Usage] |
-
-**Color Style:**
-- Mode: Dark / Light / Mixed
-- Character: Vibrant / Muted / Monochromatic / Gradient-heavy
-- Background treatment: Solid / Gradient / Textured / Animated
-
-**Typography:**
-| Element | Font Style | Size | Weight | Color | Letter Spacing |
-|---------|------------|------|--------|-------|----------------|
-| Headline | [e.g., Modern sans-serif] | [e.g., 48px] | [e.g., 700] | #[XXXXXX] | [e.g., -0.02em] |
-| Subheadline | [style] | [size] | [weight] | #[XXXXXX] | [spacing] |
-| Body | [style] | [size] | [weight] | #[XXXXXX] | [spacing] |
-| Caption/Label | [style] | [size] | [weight] | #[XXXXXX] | [spacing] |
-
-**Shadows & Depth:**
-- Elevation Low: [e.g., 0 2px 4px rgba(0,0,0,0.1)]
-- Elevation Medium: [e.g., 0 8px 16px rgba(0,0,0,0.15)]
-- Elevation High: [e.g., 0 16px 32px rgba(0,0,0,0.2)]
-- Glow effects: [if any, e.g., 0 0 20px rgba(59,130,246,0.5)]
-
-**Border Radius:**
-- Small elements: [e.g., 4px]
-- Medium elements (cards): [e.g., 8px]
-- Large elements (containers): [e.g., 16px]
-- Pills/badges: [e.g., 9999px]
-
-**Visual Effects:**
-- Blur: [Background blur values, e.g., backdrop-filter: blur(10px)]
-- Overlays: [Gradient overlays, grain, light leaks]
-- Borders: [Border styles, e.g., 1px solid rgba(255,255,255,0.1)]
-
-**UI Style (if showing interfaces):**
-- Style: Glassmorphism / Neumorphism / Flat / Material / Skeuomorphic
-- Card treatment: [describe card styling]
-- Button styling: [describe button appearance]
-
----
-
-### AUDIO/RHYTHM SYNC (if applicable)
-
-**Pacing Notes:**
-- Are animations synced to beats or rhythm?
-- Key moments that would align with audio hits
-- Overall energy curve (builds up, stays steady, peaks at end)
-
----
-
-### TEMPLATE SUMMARY FOR AI AGENT
-
-Provide a concise summary that an AI agent can use to recreate this style:
-
-\`\`\`
-VIDEO TEMPLATE: [Name this template style]
-
-TYPE: [Video category]
-DURATION: [X] seconds
-ASPECT: [Ratio]
-
-STRUCTURE:
-1. [Scene 1 - Xs] - [Purpose] - [Key motion]
-2. [Scene 2 - Xs] - [Purpose] - [Key motion]
-3. [Scene 3 - Xs] - [Purpose] - [Key motion]
-...
-
-MOTION STYLE: [Character] with [easing] easing
-SIGNATURE MOVES: [List 2-3 key animation patterns]
-VISUAL VIBE: [2-3 word description]
-
-CAMERA: [Primary camera behavior]
-TRANSITIONS: [How scenes connect]
-PACING: [Rhythm description]
-
-COLORS: Primary: #[XXX] | Secondary: #[XXX] | Background: #[XXX] | Accent: #[XXX]
-TYPOGRAPHY: [Font style] | Headlines: [weight] | Body: [weight]
-\`\`\`
-
----
-
-### IMPLEMENTATION GUIDANCE
-
-**To recreate this template for your own product:**
-
-1. Replace the product/content shown with your own assets
-2. Keep the same scene structure and timing
-3. Match the motion style and easing patterns
-4. Maintain the same visual hierarchy and emphasis points
-5. Use similar transition types between scenes
-6. Preserve the overall pacing and rhythm
-
-**Remotion Components Needed:**
-- List the types of components to build (e.g., HeroReveal, FeatureCallout, TextAnimation, CTASection)
-
-**Key Remotion Features to Use:**
-- \`<Sequence>\` for scene timing
-- \`spring()\` or \`interpolate()\` based on motion style
-- \`<AbsoluteFill>\` with layered elements for depth
-- [Any other relevant Remotion patterns based on the template]
-
----
-
-IMPORTANT: Extract BOTH the reusable template structure AND exact visual properties. The template (scene structure, motion patterns, timing) enables recreation of the animation style for different content. The visual style guide (exact hex colors, typography, shadows) provides the precise design language. Together, these allow AI agents to recreate this video's look and feel for any product.`,
-};
+// Model-specific guidance appended to the prompt based on model strengths.
+// Gemini 3: excellent temporal/motion precision (87% Video-MMMU), configurable
+//   FPS captures sub-second transitions, strong spatial layout (ScreenSpot-Pro 72.7%).
+// Kimi K2.5: excellent visual-to-code generation (85% LiveCodeBench), strong
+//   holistic visual reproduction, weaker fine-grained temporal reasoning (31% TOMATO).
+
+const GEMINI_MODEL_GUIDANCE = `
+## MODEL GUIDANCE (Gemini)
+You are running on a Gemini model with strong temporal and spatial understanding.
+Lean into these strengths:
+- Be precise about motion timing: specify durations in ms, per-phase breakdowns, stagger delays.
+- Provide exact easing values: cubic-bezier() or spring(stiffness, damping, mass) — not just "ease-in-out".
+- For layout: estimate exact pixel offsets, gap/padding values, and responsive breakpoints.
+- For transforms: specify transform-origin and exact translate/scale/rotate values.
+- When analysing motion, describe the trajectory frame by frame if the animation is complex.`;
+
+const KIMI_MODEL_GUIDANCE = `
+## MODEL GUIDANCE (Kimi K2.5)
+You are running on Kimi K2.5, which excels at holistic visual reproduction and code generation.
+Lean into these strengths:
+- Prioritise producing complete, runnable code that visually matches the video.
+- For colors, shadows, typography, and layout — aim for exact visual fidelity.
+- For motion timing: provide your best estimates and label uncertainties (e.g., "~300ms (estimated)").
+- Focus on the overall feel and visual result rather than frame-by-frame temporal decomposition.
+- When generating React components, produce a single self-contained file that works out of the box.`;
 
 export function buildAnalysisPrompt(
   format: OutputFormat,
   triggerContext: TriggerContext,
-  metadata?: VideoMetadata | null
+  metadata?: VideoMetadata | null,
+  quality?: QualityLevel
 ): string {
   let prompt = BASE_SYSTEM_PROMPT;
 
@@ -709,16 +433,23 @@ export function buildAnalysisPrompt(
 
   prompt += `\n\n${ACCURACY_PROTOCOL_PROMPT}`;
 
-  // Add format-specific instructions
+  // Add use-case prompt
   prompt += `\n\n${FORMAT_PROMPTS[format]}`;
+
+  // Add model-specific guidance
+  if (quality === 'kimi') {
+    prompt += `\n\n${KIMI_MODEL_GUIDANCE}`;
+  } else if (quality) {
+    prompt += `\n\n${GEMINI_MODEL_GUIDANCE}`;
+  }
 
   return prompt;
 }
 
 export function buildUserPrompt(
-  videoDescription: string = 'Analyze the animation in this video'
+  videoDescription: string = 'Analyze this video and produce the requested clone pack'
 ): string {
   return `${videoDescription}
 
-Please provide a complete, implementable animation specification. Be precise with values and timings.`;
+Be precise with values and timings. If you estimate, label it as an estimate.`;
 }

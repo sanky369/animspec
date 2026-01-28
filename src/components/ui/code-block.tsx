@@ -83,7 +83,7 @@ export function CodeBlock({ code, language, title, currentFormat, generatedForma
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `animation.${config.ext}`;
+    a.download = `animspec-${currentFormat || 'output'}.${config.ext}`;
     a.click();
     URL.revokeObjectURL(url);
     onDownload?.();

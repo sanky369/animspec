@@ -95,7 +95,7 @@ export function FramePreview({ frameImage }: FramePreviewProps) {
       <div className="frame-hint">
         <InfoIcon />
         <p>
-          Copy this image and paste it along with the animation instructions when prompting AI coding agents
+          Copy this image and paste it along with the Agent-ready Instructions when prompting AI coding agents
           like Claude Code or Cursor for better context.
         </p>
       </div>

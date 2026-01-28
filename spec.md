@@ -1,4 +1,4 @@
-# AnimSpec.ai - Video to Animation Instructions
+# AnimSpec.ai - Video to Agent-ready Instructions
 ## Product Specification Document
 
 **Version:** 1.0  
@@ -323,7 +323,7 @@ def analyze_frames_with_openai(
 
 ## The System Prompt
 
-This is the core prompt that generates accurate animation instructions:
+This is the core prompt that generates accurate Agent-ready Instructions:
 
 ```
 ANIMATION ANALYSIS SYSTEM PROMPT

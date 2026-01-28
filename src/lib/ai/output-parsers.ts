@@ -1,5 +1,12 @@
 import type { AnalysisResult, OutputFormat } from '@/types/analysis';
 
+const FULL_OUTPUT_FORMATS: OutputFormat[] = [
+  'clone_ui_animation',
+  'extract_design_tokens',
+  'remotion_demo_template',
+  'qa_clone_checklist',
+];
+
 export function parseAnalysisOutput(
   rawOutput: string,
   format: OutputFormat
@@ -15,11 +22,20 @@ export function parseAnalysisOutput(
   };
 }
 
-function extractOverview(output: string): string {
-  // Try to extract the Animation Overview section
-  const overviewMatch = output.match(/\*\*Animation Overview:\*\*\s*\n([^\n*]+)/i);
+export function extractOverview(output: string): string {
+  // Prefer the existing UI-friendly marker
+  const overviewMatch = output.match(/\*\*Animation Overview:\*\*\s*\n([^\n]+)/i);
   if (overviewMatch) {
     return overviewMatch[1].trim();
+  }
+
+  // Support the heading-based format used by several use cases
+  const h2Match = output.match(/^##\s*Overview\s*\n([\s\S]*?)(?=\n##\s|\n$)/m);
+  if (h2Match) {
+    const block = h2Match[1].trim();
+    const firstPara = block.split('\n\n')[0]?.trim();
+    if (firstPara) return firstPara.slice(0, 200);
+    return block.slice(0, 200);
   }
 
   // Fallback: get first paragraph
@@ -31,12 +47,12 @@ function extractCodeAndNotes(
   output: string,
   format: OutputFormat
 ): { code: string; notes?: string } {
-  if (format === 'natural' || format === 'remotion') {
-    // For natural language and remotion, return the full output
+  // For full-output formats, keep the entire markdown (with headings + code fences)
+  if (FULL_OUTPUT_FORMATS.includes(format)) {
     return { code: output };
   }
 
-  // Extract code blocks
+  // For code-focused formats (component / landing), extract the single TSX block if present
   const codeBlockRegex = /```(?:css|javascript|tsx|js|typescript)?\n([\s\S]*?)```/g;
   const matches = [...output.matchAll(codeBlockRegex)];
 
@@ -56,15 +72,13 @@ function extractCodeAndNotes(
 
 export function getLanguageForFormat(format: OutputFormat): string {
   switch (format) {
-    case 'css':
-      return 'css';
-    case 'gsap':
-      return 'javascript';
-    case 'framer':
+    case 'clone_component':
+    case 'clone_landing_page':
       return 'tsx';
-    case 'remotion':
-      return 'markdown';
-    case 'natural':
+    case 'clone_ui_animation':
+    case 'extract_design_tokens':
+    case 'remotion_demo_template':
+    case 'qa_clone_checklist':
     default:
       return 'markdown';
   }
@@ -72,15 +86,13 @@ export function getLanguageForFormat(format: OutputFormat): string {
 
 export function getFileExtensionForFormat(format: OutputFormat): string {
   switch (format) {
-    case 'css':
-      return 'css';
-    case 'gsap':
-      return 'js';
-    case 'framer':
+    case 'clone_component':
+    case 'clone_landing_page':
       return 'tsx';
-    case 'remotion':
-      return 'md';
-    case 'natural':
+    case 'clone_ui_animation':
+    case 'extract_design_tokens':
+    case 'remotion_demo_template':
+    case 'qa_clone_checklist':
     default:
       return 'md';
   }

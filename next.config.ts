@@ -37,6 +37,12 @@ const nextConfig: NextConfig = {
 
   // COOP/COEP headers required for FFmpeg WASM SharedArrayBuffer
   async headers() {
+    const keyframesEnabled = process.env.NEXT_PUBLIC_DISABLE_KEYFRAMES !== 'true';
+    const csp = [
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob:",
+      "worker-src 'self' blob:",
+    ].join('; ');
+
     return [
       {
         source: '/(.*)',
@@ -65,17 +71,25 @@ const nextConfig: NextConfig = {
         source: '/dashboard/:path*',
         headers: [
           {
-            key: 'Cross-Origin-Opener-Policy',
-            value: 'same-origin',
+            key: 'Content-Security-Policy',
+            value: csp,
           },
-          {
-            key: 'Cross-Origin-Embedder-Policy',
-            value: 'require-corp',
-          },
-          {
-            key: 'Cross-Origin-Resource-Policy',
-            value: 'same-origin',
-          },
+          ...(keyframesEnabled
+            ? [
+              {
+                key: 'Cross-Origin-Opener-Policy',
+                value: 'same-origin',
+              },
+              {
+                key: 'Cross-Origin-Embedder-Policy',
+                value: 'require-corp',
+              },
+              {
+                key: 'Cross-Origin-Resource-Policy',
+                value: 'same-origin',
+              },
+            ]
+            : []),
         ],
       },
       // CORS headers for ffmpeg worker chunks

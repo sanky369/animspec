@@ -32,7 +32,7 @@ export function OutputPanel({ result, progress, streamingContent, generatedForma
           <div className="card-icon">
             <ClipboardIcon />
           </div>
-          <span className="card-title">Animation Instructions</span>
+          <span className="card-title">Agent-ready Instructions</span>
         </div>
         <div className="card-body">
           <LoadingState progress={progress} streamingContent={streamingContent} />
@@ -49,7 +49,7 @@ export function OutputPanel({ result, progress, streamingContent, generatedForma
           <div className="card-icon">
             <ClipboardIcon />
           </div>
-          <span className="card-title">Animation Instructions</span>
+          <span className="card-title">Agent-ready Instructions</span>
         </div>
         <div className="card-body">
           <div className="empty-state">
@@ -76,7 +76,7 @@ export function OutputPanel({ result, progress, streamingContent, generatedForma
           <div className="card-icon">
             <ClipboardIcon />
           </div>
-          <span className="card-title">Animation Instructions</span>
+          <span className="card-title">Agent-ready Instructions</span>
         </div>
         <div className="card-body">
           <EmptyState />
@@ -92,7 +92,7 @@ export function OutputPanel({ result, progress, streamingContent, generatedForma
         <div className="card-icon">
           <ClipboardIcon />
         </div>
-        <span className="card-title">Animation Instructions</span>
+        <span className="card-title">Agent-ready Instructions</span>
       </div>
       <Tabs tabs={tabs} defaultTab="code" onChange={setActiveTab} />
       <div className="card-body">
@@ -154,7 +154,7 @@ function EmptyState() {
         <TargetIcon />
       </div>
       <h3 className="empty-state-title">Ready to analyze</h3>
-      <p className="empty-state-subtitle">Upload a video to generate animation instructions</p>
+      <p className="empty-state-subtitle">Upload a video to generate Agent-ready Instructions</p>
     </div>
   );
 }
