@@ -7,8 +7,10 @@ const KIMI_MODEL = 'kimi-k2.5';
 const KIMI_BASE_URL = 'https://api.moonshot.ai/v1';
 
 // Config for Kimi K2.5
+// Per official docs: temperature=1.0 for Thinking mode, top_p=0.95
 const KIMI_CONFIG = {
-  temperature: 1, // Kimi K2.5 only allows temperature=1
+  temperature: 1, // Kimi K2.5 requires temperature=1 for Thinking mode
+  top_p: 0.95,    // Recommended by official Moonshot docs
   max_tokens: 8192,
 };
 
@@ -71,11 +73,19 @@ function buildContentParts(
 ): KimiContentPart[] {
   const parts: KimiContentPart[] = [];
 
+  // IMPORTANT: Per Kimi K2.5 official docs, text should come FIRST, then media
+  // See: https://huggingface.co/moonshotai/Kimi-K2.5#chat-completion-with-visual-content
+  parts.push({
+    type: 'text',
+    text: promptText,
+  });
+
   // Extract video extension from mimeType (e.g., 'video/mp4' -> 'mp4')
   const videoExtension = mimeType.split('/')[1] || 'mp4';
+  // Format: data:video/mp4;base64,{base64} - NO space after comma
   const videoUrl = `data:video/${videoExtension};base64,${videoBase64}`;
 
-  // Add video as first part
+  // Add video after text
   parts.push({
     type: 'video_url',
     video_url: { url: videoUrl },
@@ -90,12 +100,6 @@ function buildContentParts(
       });
     }
   }
-
-  // Add text prompt as last part
-  parts.push({
-    type: 'text',
-    text: promptText,
-  });
 
   return parts;
 }
@@ -125,10 +129,20 @@ export async function analyzeVideoWithKimi(
       },
     ],
     temperature: KIMI_CONFIG.temperature,
+    top_p: KIMI_CONFIG.top_p,
     max_tokens: KIMI_CONFIG.max_tokens,
   });
 
-  const text = response.choices[0]?.message?.content;
+  // Kimi K2.5 returns reasoning_content (thinking) separately from content
+  // We combine both for the full response, or just use content if reasoning is empty
+  const message = response.choices[0]?.message;
+  const reasoningContent = (message as { reasoning_content?: string })?.reasoning_content || '';
+  const textContent = message?.content || '';
+  
+  // If there's reasoning content, it contains the thinking process
+  // The main content has the final answer
+  const text = textContent || reasoningContent;
+  
   if (!text) {
     throw new Error('Empty response from Kimi');
   }
@@ -161,12 +175,15 @@ export async function* analyzeVideoWithKimiStream(
       },
     ],
     temperature: KIMI_CONFIG.temperature,
+    top_p: KIMI_CONFIG.top_p,
     max_tokens: KIMI_CONFIG.max_tokens,
     stream: true,
   });
 
   for await (const chunk of stream) {
-    const text = chunk.choices[0]?.delta?.content;
+    // Kimi K2.5 may return reasoning_content in delta for thinking mode
+    const delta = chunk.choices[0]?.delta as { content?: string; reasoning_content?: string };
+    const text = delta?.content || delta?.reasoning_content;
     if (text) {
       yield text;
     }
