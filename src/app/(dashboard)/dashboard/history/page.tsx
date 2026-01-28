@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { DashboardHeader, HistoryItem } from '@/components/dashboard';
+import { DashboardHeader, HistoryItem, AnalysisDetailModal } from '@/components/dashboard';
 import { HistoryIcon, PlusIcon } from '@/components/ui/icons';
 import type { Analysis } from '@/types/database';
 
@@ -77,7 +77,11 @@ export default function HistoryPage() {
         </div>
       )}
 
-      {/* TODO: Add analysis detail modal */}
+      <AnalysisDetailModal
+        analysis={selectedAnalysis}
+        isOpen={!!selectedAnalysis}
+        onClose={() => setSelectedAnalysis(null)}
+      />
     </>
   );
 }

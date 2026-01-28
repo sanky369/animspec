@@ -8,19 +8,20 @@ interface HistoryItemProps {
   onClick: () => void;
 }
 
-function formatDate(date: Date): string {
+function formatDate(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
   const now = new Date();
-  const diff = now.getTime() - date.getTime();
+  const diff = now.getTime() - d.getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
   if (days === 0) return 'Today';
   if (days === 1) return 'Yesterday';
   if (days < 7) return `${days} days ago`;
 
-  return date.toLocaleDateString('en-US', {
+  return d.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
-    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+    year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
   });
 }
 
