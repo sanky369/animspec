@@ -206,12 +206,15 @@ export function useAnalysis(): UseAnalysisReturn {
         setProgress({ step: 'analyzing', message: 'AI analysis in progress...' });
 
         // Make streaming request
-        const response = await fetch('/api/analyze', {
+        const fetchOptions: RequestInit = {
           method: 'POST',
           body: formData,
           credentials: 'include',
-          headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {},
-        });
+        };
+        if (authToken) {
+          fetchOptions.headers = { 'Authorization': `Bearer ${authToken}` };
+        }
+        const response = await fetch('/api/analyze', fetchOptions);
 
         if (!response.ok) {
           let errorMessage = 'Analysis failed';
