@@ -8,7 +8,7 @@ const KIMI_BASE_URL = 'https://api.moonshot.ai/v1';
 
 // Config for Kimi K2.5
 const KIMI_CONFIG = {
-  temperature: 0.6, // Instant mode recommended temperature
+  temperature: 1, // Kimi K2.5 only allows temperature=1
   max_tokens: 8192,
 };
 

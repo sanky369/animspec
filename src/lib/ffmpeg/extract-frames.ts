@@ -7,6 +7,7 @@ export interface ExtractFramesOptions {
   quality?: number; // 1-31, lower is better
   durationSeconds?: number;
   targetFrameSpacingMs?: number;
+  timeoutMs?: number;
 }
 
 export interface ExtractedFrame {
@@ -22,6 +23,7 @@ export async function extractFrames(
   const maxFrames = options.maxFrames ?? 32;
   const quality = options.quality ?? 2;
   const fps = resolveFps(options, maxFrames);
+  const execTimeout = options.timeoutMs && options.timeoutMs > 0 ? options.timeoutMs : undefined;
 
   const ffmpeg = await getFFmpeg();
 
@@ -29,43 +31,59 @@ export async function extractFrames(
   const inputFileName = 'input.mp4';
   await ffmpeg.writeFile(inputFileName, await fetchFile(videoFile));
 
-  // Extract frames at specified FPS
-  await ffmpeg.exec([
-    '-i', inputFileName,
-    '-vf', `fps=${fps}`,
-    '-q:v', quality.toString(),
-    '-frames:v', maxFrames.toString(),
-    'frame_%04d.jpg',
-  ]);
-
-  // Read extracted frames
   const frames: ExtractedFrame[] = [];
-  let frameIndex = 1;
 
-  while (frameIndex <= maxFrames) {
-    const fileName = `frame_${frameIndex.toString().padStart(4, '0')}.jpg`;
-    try {
-      const data = await ffmpeg.readFile(fileName) as Uint8Array;
-      if (data && data.length > 0) {
-        frames.push({
-          data,
-          index: frameIndex - 1,
-          timestamp: fps > 0 ? (frameIndex - 1) / fps : 0,
-        });
-        // Clean up frame file
-        await ffmpeg.deleteFile(fileName);
-      }
-    } catch {
-      // No more frames
-      break;
+  try {
+    // Extract frames at specified FPS
+    const result = await ffmpeg.exec([
+      '-i', inputFileName,
+      '-vf', `fps=${fps}`,
+      '-q:v', quality.toString(),
+      '-frames:v', maxFrames.toString(),
+      'frame_%04d.jpg',
+    ], execTimeout);
+
+    if (result !== 0) {
+      throw new Error(`FFmpeg frame extraction failed (code ${result})`);
     }
-    frameIndex++;
+
+    // Read extracted frames
+    let frameIndex = 1;
+
+    while (frameIndex <= maxFrames) {
+      const fileName = `frame_${frameIndex.toString().padStart(4, '0')}.jpg`;
+      try {
+        const data = await ffmpeg.readFile(fileName) as Uint8Array;
+        if (data && data.length > 0) {
+          frames.push({
+            data,
+            index: frameIndex - 1,
+            timestamp: fps > 0 ? (frameIndex - 1) / fps : 0,
+          });
+          // Clean up frame file
+          await ffmpeg.deleteFile(fileName);
+        }
+      } catch {
+        // No more frames
+        break;
+      }
+      frameIndex++;
+    }
+
+    return frames;
+  } finally {
+    // Best-effort cleanup
+    try {
+      await ffmpeg.deleteFile(inputFileName);
+    } catch {}
+
+    for (let frameIndex = 1; frameIndex <= maxFrames; frameIndex++) {
+      const fileName = `frame_${frameIndex.toString().padStart(4, '0')}.jpg`;
+      try {
+        await ffmpeg.deleteFile(fileName);
+      } catch {}
+    }
   }
-
-  // Clean up input file
-  await ffmpeg.deleteFile(inputFileName);
-
-  return frames;
 }
 
 export function framesToBase64(frames: ExtractedFrame[]): string[] {

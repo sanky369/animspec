@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import type {
   AnalysisConfig,
   AnalysisProgress,
@@ -17,6 +17,26 @@ import { createSseParser } from '@/lib/streaming/sse';
 
 // 20MB threshold for using Files API
 const FILES_API_THRESHOLD = 20 * 1024 * 1024;
+const KEYFRAME_EXTRACTION_TIMEOUT_MS = 15000;
+const KEYFRAMES_ENABLED = process.env.NEXT_PUBLIC_DISABLE_KEYFRAMES !== 'true';
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    promise
+      .then((value) => {
+        clearTimeout(timeoutId);
+        resolve(value);
+      })
+      .catch((err) => {
+        clearTimeout(timeoutId);
+        reject(err);
+      });
+  });
+}
 
 interface UseAnalysisReturn {
   isAnalyzing: boolean;
@@ -72,19 +92,26 @@ export function useAnalysis(): UseAnalysisReturn {
           // Continue without frame - it's not critical
         }
 
-        const shouldAttachFrameGrid = file.size <= FILES_API_THRESHOLD && metadata.duration > 0;
+        const shouldAttachFrameGrid = KEYFRAMES_ENABLED
+          && file.size <= FILES_API_THRESHOLD
+          && metadata.duration > 0;
         if (shouldAttachFrameGrid) {
           try {
             setProgress({ step: 'extracting', message: 'Extracting keyframes...' });
 
             const targetFrameSpacingMs = 150;
             const maxFrames = 24;
-            const frames = await extractFrames(file, {
-              durationSeconds: metadata.duration,
-              targetFrameSpacingMs,
-              maxFrames,
-              quality: 3,
-            });
+            const frames = await withTimeout(
+              extractFrames(file, {
+                durationSeconds: metadata.duration,
+                targetFrameSpacingMs,
+                maxFrames,
+                quality: 3,
+                timeoutMs: KEYFRAME_EXTRACTION_TIMEOUT_MS,
+              }),
+              KEYFRAME_EXTRACTION_TIMEOUT_MS,
+              'Keyframe extraction'
+            );
 
             if (frames.length > 0) {
               const aspectRatio = metadata.width > 0 && metadata.height > 0
@@ -94,12 +121,16 @@ export function useAnalysis(): UseAnalysisReturn {
               const frameHeight = Math.max(1, Math.round(frameWidth / aspectRatio));
               const columns = 4;
 
-              const grid = await createFrameGrid(frames, {
-                columns,
-                frameWidth,
-                frameHeight,
-                addLabels: true,
-              });
+              const grid = await withTimeout(
+                createFrameGrid(frames, {
+                  columns,
+                  frameWidth,
+                  frameHeight,
+                  addLabels: true,
+                }),
+                KEYFRAME_EXTRACTION_TIMEOUT_MS,
+                'Keyframe grid creation'
+              );
 
               frameGrid = {
                 ...grid,
