@@ -15,9 +15,8 @@ import { extractFrames } from '@/lib/ffmpeg/extract-frames';
 import { createFrameGrid } from '@/lib/ffmpeg/create-grid';
 import { createSseParser } from '@/lib/streaming/sse';
 
-// 20MB threshold for using Files API (Gemini)
-const FILES_API_THRESHOLD = 20 * 1024 * 1024;
 // 4MB threshold for using R2 (Vercel body limit is ~4.5MB)
+// Files >4MB are uploaded to R2, server fetches and converts to base64
 const R2_UPLOAD_THRESHOLD = 4 * 1024 * 1024;
 const KEYFRAME_EXTRACTION_TIMEOUT_MS = 15000;
 const KEYFRAMES_ENABLED = process.env.NEXT_PUBLIC_DISABLE_KEYFRAMES !== 'true';
@@ -165,35 +164,9 @@ export function useAnalysis(): UseAnalysisReturn {
           formData.append('frameGridColumns', frameGrid.columns.toString());
         }
 
-        // Kimi only supports inline base64 (no Files API)
-        // For Gemini models with very large files (>20MB), use Gemini Files API
-        const isKimi = config.quality === 'kimi';
-        
-        if (!isKimi && file.size > FILES_API_THRESHOLD) {
-          setProgress({ step: 'uploading', message: 'Uploading video to Gemini...' });
-
-          // Upload to Gemini Files API first
-          const uploadFormData = new FormData();
-          uploadFormData.append('file', file);
-
-          const uploadResponse = await fetch('/api/upload', {
-            method: 'POST',
-            body: uploadFormData,
-          });
-
-          if (!uploadResponse.ok) {
-            const errorData = await uploadResponse.json();
-            throw new Error(errorData.error || 'Upload failed');
-          }
-
-          const uploadResult = await uploadResponse.json();
-
-          // Use file URI for analysis
-          formData.append('fileUri', uploadResult.uri);
-          formData.append('fileMimeType', uploadResult.mimeType);
-        } else if (file.size > R2_UPLOAD_THRESHOLD) {
-          // For files >4MB (or any Kimi file >4MB), use R2 to bypass Vercel body limit
-          // R2 fetches the video server-side and converts to base64 for Kimi
+        // For files >4MB, use R2 to bypass Vercel's body limit
+        // Server fetches from R2 and converts to base64 for AI models
+        if (file.size > R2_UPLOAD_THRESHOLD) {
           // For medium files (4-20MB), use R2 to bypass Vercel body limit
           setProgress({ step: 'uploading', message: 'Uploading video...' });
 
