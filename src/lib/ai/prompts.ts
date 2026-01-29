@@ -400,6 +400,36 @@ Required structure:
 4. [Key trait]
 5. [Key trait]
 
+## Information Flow & Layout Patterns
+
+**Overall page structure:**
+[Describe the top-to-bottom flow — e.g., "Full-width hero → constrained content sections → full-width CTA"]
+
+**Content hierarchy pattern:**
+1. [First level — what comes first and how it's emphasized]
+2. [Second level — supporting content pattern]
+3. [Third level — details/secondary info treatment]
+
+**Section rhythm:**
+- Section spacing: [X]px between major sections
+- Content width: [max-width or container pattern]
+- Alignment: [centered / left-aligned / asymmetric]
+
+**Common layout blocks:**
+| Block Type | Layout Pattern | Key Characteristics |
+|------------|----------------|---------------------|
+| Hero | [e.g., "Centered, headline + subhead + CTA + visual"] | [notable details] |
+| Feature section | [e.g., "2-col grid, icon + title + description"] | [notable details] |
+| Social proof | [e.g., "Logo strip, single row, grayscale"] | [notable details] |
+| CTA | [e.g., "Centered, constrained width, strong contrast"] | [notable details] |
+[Add all recurring layout patterns]
+
+**Visual weight distribution:**
+[Describe how attention is guided — e.g., "Heavy top (large headline), light middle (breathing room), heavy bottom (CTA)"]
+
+**Whitespace philosophy:**
+[Generous/tight? How is breathing room created? Section padding patterns?]
+
 ## Color System
 
 | Role | Value | How to use it |
@@ -431,6 +461,9 @@ Required structure:
 - Font family: [detected or suggested free alternative]
 - Letter spacing: [normal / tight / specific value]
 - Special treatment: [any unique text styling — gradients, shadows, etc.]
+
+**Typography hierarchy pattern:**
+[How is hierarchy established? Size jumps? Weight contrast? Color differentiation?]
 
 ## Shape Language
 
@@ -470,6 +503,9 @@ Required structure:
 **Entrance/exit patterns**
 [How elements appear and disappear]
 
+**Scroll-triggered patterns**
+[If visible: how elements animate on scroll — fade up, stagger, parallax?]
+
 **Signature animations**
 [Any distinctive motion patterns unique to this style]
 
@@ -503,14 +539,25 @@ module.exports = {
 }
 \`\`\`
 
+### Layout Utilities
+\`\`\`css
+/* Common layout patterns from this style */
+.section { /* section spacing */ }
+.container { /* content width constraints */ }
+/* etc. */
+\`\`\`
+
 ## Style Transfer Checklist
 When applying this style to your product:
+- [ ] Restructure your page flow to match this information hierarchy
+- [ ] Apply the section spacing and whitespace rhythm
 - [ ] Replace your background color with this surface hierarchy
 - [ ] Update your border treatment to match (thinner? more transparent?)
 - [ ] Adjust your shadows to create this depth level
 - [ ] Apply the border-radius scale consistently
 - [ ] Update hover states to match this pattern
 - [ ] Match the animation timing and easing
+- [ ] Adopt the typography hierarchy pattern
 - [ ] [Other specific transformations]
 
 ## The Subtle Details
