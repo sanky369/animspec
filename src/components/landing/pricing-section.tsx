@@ -41,7 +41,7 @@ const packs = [
 ];
 
 // TODO: Remove PAYMENTS_ENABLED flag once Lemon Squeezy is approved
-const PAYMENTS_ENABLED = false;
+const PAYMENTS_ENABLED = true;
 
 export function PricingSection() {
   const { user } = useAuth();

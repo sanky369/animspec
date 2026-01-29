@@ -27,7 +27,7 @@ const packs: { id: PackType; name: string; description: string; popular: boolean
 ];
 
 // TODO: Remove PAYMENTS_ENABLED flag once Lemon Squeezy is approved
-const PAYMENTS_ENABLED = false;
+const PAYMENTS_ENABLED = true;
 
 export function PricingModal({ isOpen, onClose, onSelectPack, isLoading }: PricingModalProps) {
   const [selectedPack, setSelectedPack] = useState<PackType | null>(null);

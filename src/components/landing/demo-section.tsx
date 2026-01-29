@@ -18,7 +18,7 @@ export function DemoSection() {
   const [demoUsed, setDemoUsed] = useState(false);
   const [config, setConfig] = useState<AnalysisConfig>({
     format: 'clone_ui_animation',
-    quality: 'balanced', // Demo uses balanced (Gemini 3 Flash) for better quality
+    quality: 'kimi', // Demo uses Kimi K2.5 — best for UI
     triggerContext: null,
   });
 
@@ -79,7 +79,7 @@ export function DemoSection() {
     }
 
     // Run analysis
-    await analyze(file, metadata, { ...config, quality: 'balanced' });
+    await analyze(file, metadata, { ...config, quality: 'kimi' });
 
     // Mark demo as used (only for non-authenticated users)
     if (!user) {
@@ -145,8 +145,8 @@ export function DemoSection() {
                 />
 
                 <div className="demo-quality-info">
-                  <span className="badge badge-subtle">Balanced mode (Gemini 3 Flash Thinking)</span>
-                  {!user && <span className="demo-quality-note">Sign in for more options</span>}
+                  <span className="badge badge-subtle">Kimi K2.5 — best for UI</span>
+                  {!user && <span className="demo-quality-note">Sign in for more quality options</span>}
                 </div>
 
                 <button
