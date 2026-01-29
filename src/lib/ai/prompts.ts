@@ -185,517 +185,627 @@ If trigger cannot be determined, output:
 
 const FORMAT_PROMPTS: Record<OutputFormat, string> = {
   clone_ui_animation: `
-## OUTPUT: AGENT INSTRUCTIONS — Clone This Animation
+## OUTPUT FORMAT: Clone This Animation
 
-You are generating instructions for an AI coding agent (Claude Code, Cursor, Copilot, etc.) to recreate this exact animation.
-
-**IMPORTANT:** Write these as direct instructions the agent can follow, not as an analysis report.
+Generate a spec that captures every detail needed to recreate this animation perfectly.
 
 Required structure:
 
-## Task
-> Recreate the [animation type] animation exactly as shown.
-
-## What You're Building
-- 1-2 sentences describing the animation effect and where it would be used.
+## Overview
+[1 sentence: what this animation does and where it's used]
 
 ## Trigger
-- When does this animation fire? (hover/click/scroll/load/focus)
+[hover / click / scroll / load / focus — state confidence if inferred]
 
-## Elements to Animate
-For each element:
-- **Element:** [name/selector suggestion]
-- **Visual:** [size, shape, colors — use exact hex codes]
-- **Layer:** [z-index/overlap notes if relevant]
+## Elements
 
-## Animation Spec
-For each element, provide exact instructions:
+**[Element 1 Name]**
+- Selector: \`.suggested-class\` or \`[data-element]\`
+- Size: [W]px × [H]px
+- Colors: background #XXXXXX, border #XXXXXX, text #XXXXXX
+- Border radius: [X]px
+- Shadow: \`[exact box-shadow value]\`
+- Z-index: [if layered]
 
-**[Element Name]:**
-- Start state: \`{ transform: ..., opacity: ..., background: #..., boxShadow: ... }\`
-- End state: \`{ transform: ..., opacity: ..., background: #..., boxShadow: ... }\`
-- Duration: [X]ms
-- Delay: [X]ms (if any)
-- Easing: \`cubic-bezier(X, X, X, X)\` or \`spring(stiffness: X, damping: X)\`
+[Repeat for each animated element]
 
-## Implementation Instructions
-Choose ONE approach and provide copy-paste code:
+## Animation Sequence
 
-**If CSS is sufficient:**
+**[Element 1 Name]**
+\`\`\`
+Initial:  { opacity: X, transform: translateY(Xpx) scale(X), background: #XXX }
+Final:    { opacity: X, transform: translateY(Xpx) scale(X), background: #XXX }
+Duration: [X]ms
+Delay:    [X]ms
+Easing:   cubic-bezier(X, X, X, X)  /* or spring(stiffness: X, damping: X) */
+\`\`\`
+
+[Repeat for each element — include ALL animated properties]
+
+## Stagger Pattern
+[If multiple elements: describe the timing relationship — e.g., "Each card delays 80ms after previous"]
+
+## Micro-details
+[List the subtle touches that make this feel polished — the 2px lift, the 0.02 scale bump, the shadow fade, etc.]
+
+## Implementation
+
 \`\`\`css
-/* Provide complete @keyframes and class definitions */
+/* CSS approach — or use GSAP/Framer Motion if spring physics required */
 \`\`\`
 
-**If JS animation needed (GSAP/Framer Motion):**
-\`\`\`tsx
-// Provide complete, runnable code
-\`\`\`
-
-## Verification Checklist
-The agent should verify:
-- [ ] Total duration matches: [X]ms
-- [ ] Easing feels [snappy/smooth/bouncy] — not linear
-- [ ] [List 4-6 specific things to check]`,
+## The Details That Matter
+- [ ] [Specific detail to nail]
+- [ ] [Specific detail to nail]
+- [ ] [Specific detail to nail]
+[6-10 items — these are what separate a good clone from a perfect one]`,
 
   clone_component: `
-## OUTPUT: AGENT INSTRUCTIONS — Build This Component
+## OUTPUT FORMAT: Clone This Component
 
-You are generating instructions for an AI coding agent to build this exact UI component.
-
-**IMPORTANT:** Write these as direct build instructions, not analysis.
+Generate a complete spec to recreate this component with pixel-perfect accuracy.
 
 Required structure:
 
-## Task
-> Build a [component type] component matching this design exactly.
+## Overview
+[1 sentence: what this component is]
 
-## Component Overview
-- What it is and what it does (1-2 sentences)
+## Dimensions & Layout
+- Container: [W] × [H] (or min/max constraints)
+- Padding: [top] [right] [bottom] [left]
+- Layout: [flex/grid] with [gap]px gap
+- Alignment: [how children are aligned]
 
-## Visual Specs
-- **Colors:** [list all hex codes with their roles]
-- **Typography:** [font sizes, weights, line-heights]
-- **Spacing:** [padding, margins, gaps in px]
-- **Borders:** [width, color, radius]
-- **Shadows:** [exact box-shadow values]
-- **States:** [hover, active, focus, disabled appearances]
+## Colors
+| Element | Property | Value |
+|---------|----------|-------|
+| Container | background | #XXXXXX |
+| Container | border | #XXXXXX |
+| Text | color | #XXXXXX |
+| Icon | fill | #XXXXXX |
+[List ALL colors — be exhaustive]
 
-## Props to Support
-\`\`\`typescript
-interface Props {
-  // List each prop with type and default
-}
-\`\`\`
+## Typography
+- Font: [family or "system default"]
+- Primary text: [size]px / [weight] / [line-height]
+- Secondary text: [size]px / [weight] / [line-height]
+- Letter spacing: [value or "normal"]
 
-## Build Instructions
-Create a single React + Tailwind component:
+## Shape & Depth
+- Border radius: [X]px
+- Border: [width]px [style] [color or rgba]
+- Shadow: \`[exact box-shadow]\`
+- Backdrop blur: [value if present]
+
+## States
+**Default**
+[already covered above]
+
+**Hover**
+- [property]: [from] → [to]
+- transition: [duration]ms [easing]
+
+**Active/Pressed**
+- [property changes]
+
+**Focus**
+- Focus ring: [color], [offset], [width]
+
+**Disabled**
+- Opacity: [X]
+- Cursor: not-allowed
+
+## Component Code
 
 \`\`\`tsx
-// Complete, runnable component code
-// Use Tailwind classes only — no external UI libraries
-// Include all states (hover, focus, active)
-// Include accessibility (keyboard navigation, focus rings)
+// Single-file React + Tailwind component
+// No external UI libraries
+// All states included
+// Accessible (keyboard + focus)
 \`\`\`
 
-## Verification
-The agent should check:
-- [ ] Colors match exactly (use hex values above)
-- [ ] Spacing/padding matches
-- [ ] Hover/focus states work
-- [ ] Keyboard accessible`,
+## The Details That Matter
+- [ ] [Specific detail to nail]
+- [ ] [Specific detail to nail]
+[List the subtle things that make this component feel premium]`,
 
   clone_landing_page: `
-## OUTPUT: AGENT INSTRUCTIONS — Build This Landing Page
+## OUTPUT FORMAT: Clone This Landing Page
 
-You are generating instructions for an AI coding agent to recreate this landing page layout.
-
-**IMPORTANT:** Write these as direct build instructions, not analysis.
+Generate a complete spec to recreate this page layout.
 
 Required structure:
 
-## Task
-> Recreate this landing page/section with the exact layout, styling, and structure.
+## Overview
+[1 sentence: what page/section this is, overall vibe]
 
-## Page Overview
-- What type of page (hero, pricing, features, etc.)
-- Overall style direction (dark/light, minimal/bold, etc.)
+## Page Structure
 
-## Section Breakdown
-List each section top-to-bottom:
+### Section 1: [Name]
+- **Layout:** [container width, columns, alignment]
+- **Background:** #XXXXXX [or gradient/image description]
+- **Padding:** [top/bottom]px
+- **Elements:**
+  - [element]: [brief description + key styles]
+  - [element]: [brief description + key styles]
 
-### [Section Name]
-- **Layout:** [grid/flex, columns, alignment]
-- **Background:** [color/gradient/image]
-- **Elements:** [what's in this section]
-- **Spacing:** [gaps, padding]
+### Section 2: [Name]
+[same structure]
 
-## Design Tokens
-- **Colors:** [all hex codes with roles]
-- **Typography:** [heading sizes, body text]
-- **Spacing scale:** [common gaps/paddings used]
-- **Border radius:** [values used]
+[Continue for all sections]
 
-## Build Instructions
-Create a single React + Tailwind page component:
+## Design System
+
+**Colors**
+| Role | Value |
+|------|-------|
+| Background | #XXXXXX |
+| Surface | #XXXXXX |
+| Text primary | #XXXXXX |
+| Text secondary | #XXXXXX |
+| Accent | #XXXXXX |
+| Border | #XXXXXX |
+
+**Typography**
+- H1: [size]px / [weight]
+- H2: [size]px / [weight]
+- H3: [size]px / [weight]
+- Body: [size]px / [weight] / [line-height]
+- Small: [size]px
+
+**Spacing Scale**
+- Section padding: [X]px
+- Element gaps: [X]px
+- Component padding: [X]px
+
+**Border Radius:** [X]px (cards), [Y]px (buttons), [Z]px (inputs)
+
+**Shadows:** \`[exact values]\`
+
+## Responsive Behavior
+- Mobile (<768px): [key changes]
+- Tablet (768-1024px): [key changes]
+- Desktop (>1024px): [default]
+
+## Page Code
 
 \`\`\`tsx
 // Complete page component
-// Responsive (mobile-first with md/lg breakpoints)
-// Use semantic HTML
-// Mark placeholder content with TODO comments
+// Responsive with Tailwind breakpoints
+// Placeholder content marked with TODO
 \`\`\`
 
-## Verification
-- [ ] All sections present in correct order
-- [ ] Responsive at mobile/tablet/desktop
-- [ ] Colors and typography match
-- [ ] Spacing feels consistent`,
+## The Details That Matter
+- [ ] [Specific detail to nail]
+- [ ] [Specific detail to nail]`,
 
   copy_design_style: `
-## OUTPUT: AGENT INSTRUCTIONS — Apply This Design Style to Your Product
+## OUTPUT FORMAT: Apply This Design Style
 
-You are generating instructions for an AI coding agent to apply this design aesthetic to the USER'S EXISTING product/app — NOT to clone this exact UI.
+Extract the complete design language so it can be applied to ANY existing product.
 
-**IMPORTANT:** The goal is style transfer, not replication. Extract the design language so it can be applied to any product.
+**Goal:** Not cloning this UI — capturing its aesthetic DNA to transform other products.
 
 Required structure:
 
-## Task
-> Apply this design style to your existing product. Here's the complete style guide to follow.
+## Style DNA
+- **In 1 sentence:** [e.g., "Dark, glassy SaaS with subtle depth and snappy micro-interactions"]
+- **Mood:** [professional / playful / bold / minimal / luxurious / techy]
+- **Era/influence:** [e.g., "2024 AI-product aesthetic", "Apple-inspired minimal"]
 
-## Style Overview
-- **Design direction:** [e.g., "Dark mode SaaS with glassy depth", "Minimal with bold accents", "Playful with soft shadows"]
-- **Mood:** [professional/playful/bold/minimal/luxurious]
-- **Key characteristics:** [3-5 defining traits of this style]
+## What Makes This Style Distinctive
+1. [Key trait — e.g., "Layered glass surfaces with backdrop blur"]
+2. [Key trait — e.g., "Very subtle borders (1px at 5% opacity)"]
+3. [Key trait — e.g., "Spring animations with slight overshoot"]
+4. [Key trait]
+5. [Key trait]
 
 ## Color System
-Apply these colors to your existing UI:
 
-| Role | Value | Usage |
-|------|-------|-------|
-| Background | #XXXXXX | Page/app background |
+| Role | Value | How to use it |
+|------|-------|---------------|
+| Background | #XXXXXX | App/page background |
 | Surface | #XXXXXX | Cards, modals, dropdowns |
-| Surface Elevated | #XXXXXX | Hovering elements, tooltips |
-| Border | #XXXXXX | Dividers, input borders |
-| Text Primary | #XXXXXX | Headings, important text |
-| Text Secondary | #XXXXXX | Body text, descriptions |
-| Text Muted | #XXXXXX | Placeholders, disabled |
-| Accent/Primary | #XXXXXX | CTAs, links, active states |
-| Accent Hover | #XXXXXX | Hover state for accent |
-| Success | #XXXXXX | Success states |
-| Error | #XXXXXX | Error states |
-| Warning | #XXXXXX | Warning states |
-
-## Typography Rules
-- **Font family:** [detected or suggested alternative]
-- **Heading scale:** [h1: Xpx/weight, h2: Xpx/weight, etc.]
-- **Body text:** [size, weight, line-height]
-- **Small/caption:** [size, weight]
-- **Letter spacing:** [any tracking adjustments]
-
-## Shape Language
-- **Border radius:**
-  - Small (inputs, chips): Xpx
-  - Medium (cards, buttons): Xpx
-  - Large (modals, containers): Xpx
-  - Pill (tags, badges): 9999px
-- **Borders:** [e.g., "1px solid with 10% opacity", "no borders, use shadows"]
-
-## Depth & Shadows
-- **Elevation low:** \`box-shadow: ...\` (subtle lift)
-- **Elevation medium:** \`box-shadow: ...\` (cards, dropdowns)
-- **Elevation high:** \`box-shadow: ...\` (modals, popovers)
-- **Blur effects:** [backdrop-filter values if used]
-
-## Animation Style
-- **Default easing:** \`cubic-bezier(X, X, X, X)\`
-- **Default duration:** [e.g., 150ms for micro, 300ms for transitions]
-- **Hover effects:** [what happens on hover — lift, glow, color shift]
-- **Enter/exit:** [how elements appear/disappear]
-- **Signature motion:** [any unique motion patterns to adopt]
-
-## Implementation Instructions
-
-### Step 1: Update your Tailwind config
-\`\`\`javascript
-// tailwind.config.js additions
-module.exports = {
-  theme: {
-    extend: {
-      colors: {
-        // Paste color tokens here
-      },
-      boxShadow: {
-        // Paste shadow tokens here
-      },
-      borderRadius: {
-        // Paste radius tokens here
-      },
-    },
-  },
-}
-\`\`\`
-
-### Step 2: Update your CSS variables
-\`\`\`css
-:root {
-  /* Paste all CSS custom properties */
-}
-\`\`\`
-
-### Step 3: Apply to existing components
-For each component type in your app:
-- **Buttons:** [specific style instructions]
-- **Cards:** [specific style instructions]
-- **Inputs:** [specific style instructions]
-- **Navigation:** [specific style instructions]
-- **Modals:** [specific style instructions]
-
-## Before/After Mindset
-When updating your UI:
-- Replace [old pattern] → [new pattern from this style]
-- Replace [old pattern] → [new pattern from this style]
-- [3-5 specific transformations]
-
-## Verification
-After applying this style, check:
-- [ ] Color palette feels cohesive
-- [ ] Typography hierarchy is clear
-- [ ] Shadows create appropriate depth
-- [ ] Hover/focus states are consistent
-- [ ] Animations feel smooth and intentional`,
-
-  extract_design_tokens: `
-## OUTPUT: AGENT INSTRUCTIONS — Use These Design Tokens
-
-You are generating a complete design token system that an AI coding agent can use to maintain consistent styling.
-
-**IMPORTANT:** Output ready-to-use tokens, not analysis.
-
-Required structure:
-
-## Style Direction
-- [1-2 sentences on the overall aesthetic]
-
-## Color Palette
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| --color-bg | #XXXXXX | Page background |
-| --color-surface | #XXXXXX | Cards, containers |
-| --color-border | #XXXXXX | Dividers, borders |
-| --color-text-primary | #XXXXXX | Headings |
-| --color-text-secondary | #XXXXXX | Body text |
-| --color-accent | #XXXXXX | CTAs, links |
-| [add all colors found] | | |
+| Surface elevated | #XXXXXX | Hover states, tooltips |
+| Border | rgba(X,X,X,0.X) | Subtle dividers — note the opacity |
+| Text primary | #XXXXXX | Headings, important content |
+| Text secondary | #XXXXXX | Body, descriptions |
+| Text muted | #XXXXXX | Placeholders, hints |
+| Accent | #XXXXXX | CTAs, links, focus rings |
+| Accent hover | #XXXXXX | Hover/active states |
+| Success | #XXXXXX | |
+| Warning | #XXXXXX | |
+| Error | #XXXXXX | |
 
 ## Typography
 
-| Token | Value |
-|-------|-------|
-| --font-family | [detected or "system-ui, sans-serif"] |
-| --font-size-xs | Xpx |
-| --font-size-sm | Xpx |
-| --font-size-base | Xpx |
-| --font-size-lg | Xpx |
-| --font-size-xl | Xpx |
-| --font-weight-normal | X |
-| --font-weight-medium | X |
-| --font-weight-bold | X |
-| --line-height-tight | X |
-| --line-height-normal | X |
+| Role | Size | Weight | Line Height | Notes |
+|------|------|--------|-------------|-------|
+| H1 | Xpx | X | X | |
+| H2 | Xpx | X | X | |
+| H3 | Xpx | X | X | |
+| Body | Xpx | X | X | |
+| Small | Xpx | X | X | |
+| Caption | Xpx | X | X | |
 
-## Spacing & Radius
+- Font family: [detected or suggested free alternative]
+- Letter spacing: [normal / tight / specific value]
+- Special treatment: [any unique text styling — gradients, shadows, etc.]
 
-| Token | Value |
-|-------|-------|
-| --radius-sm | Xpx |
-| --radius-md | Xpx |
-| --radius-lg | Xpx |
-| --radius-full | 9999px |
+## Shape Language
 
-## Shadows
+**Border Radius**
+- Tiny (chips, badges): [X]px
+- Small (inputs, small buttons): [X]px
+- Medium (cards, buttons): [X]px
+- Large (modals, containers): [X]px
+- Pill: 9999px
 
-| Token | Value |
-|-------|-------|
-| --shadow-sm | X |
-| --shadow-md | X |
-| --shadow-lg | X |
+**Borders**
+[Describe the border style — e.g., "1px solid rgba(255,255,255,0.1)" or "no borders, depth from shadows only"]
 
-## CSS Variables (Copy-Paste Ready)
-\`\`\`css
-:root {
-  /* Paste all tokens as CSS custom properties */
-}
-\`\`\`
+## Depth & Elevation
 
-## JSON Tokens (For Design Tools/Build Systems)
-\`\`\`json
-{
-  "colors": { },
-  "typography": { },
-  "spacing": { },
-  "shadows": { }
-}
-\`\`\`
+**Shadows**
+- Low (hover lift): \`[exact box-shadow]\`
+- Medium (cards, dropdowns): \`[exact box-shadow]\`
+- High (modals, popovers): \`[exact box-shadow]\`
 
-## Tailwind Config Extension
+**Glass/Blur effects**
+[If present: backdrop-filter values, background opacity]
+
+## Motion & Animation
+
+**Default timing**
+- Micro-interactions: [X]ms
+- Component transitions: [X]ms
+- Page transitions: [X]ms
+
+**Default easing:** \`cubic-bezier(X, X, X, X)\`
+[Describe the feel: snappy? smooth? bouncy?]
+
+**Hover patterns**
+[What typically happens on hover — lift, glow, color shift, scale?]
+
+**Entrance/exit patterns**
+[How elements appear and disappear]
+
+**Signature animations**
+[Any distinctive motion patterns unique to this style]
+
+## Implementation Kit
+
+### Tailwind Config
 \`\`\`javascript
 // Add to tailwind.config.js
 module.exports = {
   theme: {
     extend: {
-      // Paste Tailwind-compatible tokens
+      colors: {
+        // All color tokens
+      },
+      boxShadow: {
+        // All shadow tokens
+      },
+      borderRadius: {
+        // Radius tokens
+      },
+      // etc.
+    },
+  },
+}
+\`\`\`
+
+### CSS Variables
+\`\`\`css
+:root {
+  /* Complete variable set */
+}
+\`\`\`
+
+## Style Transfer Checklist
+When applying this style to your product:
+- [ ] Replace your background color with this surface hierarchy
+- [ ] Update your border treatment to match (thinner? more transparent?)
+- [ ] Adjust your shadows to create this depth level
+- [ ] Apply the border-radius scale consistently
+- [ ] Update hover states to match this pattern
+- [ ] Match the animation timing and easing
+- [ ] [Other specific transformations]
+
+## The Subtle Details
+[List 5-8 small touches that make this style feel polished — the things most people miss]`,
+
+  extract_design_tokens: `
+## OUTPUT FORMAT: Design Tokens
+
+Extract a complete, copy-paste-ready token system.
+
+Required structure:
+
+## Style Summary
+[1 sentence describing the aesthetic]
+
+## Tokens
+
+### Colors
+| Token | Value | Usage |
+|-------|-------|-------|
+| \`--color-bg\` | #XXXXXX | Page background |
+| \`--color-surface\` | #XXXXXX | Cards, containers |
+| \`--color-surface-hover\` | #XXXXXX | Elevated surfaces |
+| \`--color-border\` | #XXXXXX | Dividers, borders |
+| \`--color-text\` | #XXXXXX | Primary text |
+| \`--color-text-secondary\` | #XXXXXX | Secondary text |
+| \`--color-text-muted\` | #XXXXXX | Muted/disabled text |
+| \`--color-accent\` | #XXXXXX | Primary actions |
+| \`--color-accent-hover\` | #XXXXXX | Accent hover state |
+[Add all colors — be thorough]
+
+### Typography
+| Token | Value |
+|-------|-------|
+| \`--font-family\` | [value] |
+| \`--font-size-xs\` | Xpx |
+| \`--font-size-sm\` | Xpx |
+| \`--font-size-base\` | Xpx |
+| \`--font-size-lg\` | Xpx |
+| \`--font-size-xl\` | Xpx |
+| \`--font-size-2xl\` | Xpx |
+| \`--font-weight-normal\` | X |
+| \`--font-weight-medium\` | X |
+| \`--font-weight-semibold\` | X |
+| \`--font-weight-bold\` | X |
+| \`--line-height-tight\` | X |
+| \`--line-height-normal\` | X |
+| \`--line-height-relaxed\` | X |
+
+### Spacing
+| Token | Value |
+|-------|-------|
+| \`--space-1\` | Xpx |
+| \`--space-2\` | Xpx |
+| \`--space-3\` | Xpx |
+| \`--space-4\` | Xpx |
+| \`--space-6\` | Xpx |
+| \`--space-8\` | Xpx |
+
+### Border Radius
+| Token | Value |
+|-------|-------|
+| \`--radius-sm\` | Xpx |
+| \`--radius-md\` | Xpx |
+| \`--radius-lg\` | Xpx |
+| \`--radius-xl\` | Xpx |
+| \`--radius-full\` | 9999px |
+
+### Shadows
+| Token | Value |
+|-------|-------|
+| \`--shadow-sm\` | [exact value] |
+| \`--shadow-md\` | [exact value] |
+| \`--shadow-lg\` | [exact value] |
+
+### Animation
+| Token | Value |
+|-------|-------|
+| \`--duration-fast\` | Xms |
+| \`--duration-normal\` | Xms |
+| \`--duration-slow\` | Xms |
+| \`--ease-default\` | cubic-bezier(X,X,X,X) |
+
+## CSS Variables (Copy-Paste)
+\`\`\`css
+:root {
+  /* All tokens as CSS custom properties */
+}
+\`\`\`
+
+## JSON Tokens
+\`\`\`json
+{
+  "colors": {},
+  "typography": {},
+  "spacing": {},
+  "radii": {},
+  "shadows": {}
+}
+\`\`\`
+
+## Tailwind Config
+\`\`\`javascript
+module.exports = {
+  theme: {
+    extend: {
+      /* Tailwind-compatible tokens */
     }
   }
 }
 \`\`\``,
 
   remotion_demo_template: `
-## OUTPUT: AGENT INSTRUCTIONS — Create This Style of Product Demo
+## OUTPUT FORMAT: Remotion Demo Template
 
-You are generating instructions for an AI coding agent to create Remotion video templates in this style.
-
-**IMPORTANT:** These are instructions to recreate this demo style with DIFFERENT content/assets.
+Generate a reusable template spec for creating similar product demo videos.
 
 Required structure:
 
-## Task
-> Create a product demo video template in Remotion that matches this style. The template should be reusable with different product screenshots/content.
-
 ## Video Overview
-- **Type:** [product demo / explainer / ad / walkthrough]
-- **Mood:** [energetic/professional/playful/minimal]
-- **Duration:** [X seconds]
+- **Type:** [product demo / explainer / feature showcase]
+- **Mood:** [energetic / professional / playful / cinematic]
+- **Duration:** [X] seconds
 - **Aspect ratio:** [16:9 / 9:16 / 1:1]
+- **FPS:** [30 / 60]
 
-## Scene Structure
+## Scene Breakdown
 
-| # | Scene | Duration | What Happens | Transition In |
-|---|-------|----------|--------------|---------------|
-| 1 | [name] | [X]s | [description] | [fade/slide/zoom] |
-| 2 | [name] | [X]s | [description] | [transition] |
-| [continue for all scenes] |
+| # | Scene | Time | Duration | What Happens | Transition |
+|---|-------|------|----------|--------------|------------|
+| 1 | [name] | 0:00 | [X]s | [description] | [in transition] |
+| 2 | [name] | [X:XX] | [X]s | [description] | [transition] |
+[Continue for all scenes]
 
-## Motion Style Guide
-Use these motion patterns throughout:
+## Motion Language
 
-- **Primary easing:** \`cubic-bezier(X, X, X, X)\` — [describe the feel]
-- **Element entrances:** [how things appear — fade up, scale in, slide]
-- **Element exits:** [how things leave]
-- **Stagger timing:** [delay between sequential elements]
-- **Signature moves:** [2-3 unique motion patterns to replicate]
+**Primary easing:** \`cubic-bezier(X, X, X, X)\`
+[Describe the feel]
 
-## Visual Style Guide
-- **Background:** [color/gradient/treatment]
-- **Text colors:** [primary #XXX, secondary #XXX]
-- **Accent color:** #XXXXXX
-- **Typography:** [font, sizes for headlines/body]
-- **Shadows/depth:** [how depth is created]
+**Element entrances:**
+- [Pattern 1 — e.g., "Fade up from 20px below, 400ms"]
+- [Pattern 2 — e.g., "Scale from 0.95, 300ms with slight bounce"]
+
+**Element exits:**
+- [Pattern — e.g., "Fade out, 200ms"]
+
+**Stagger timing:** [X]ms between sequential elements
+
+**Signature moves:**
+1. [Distinctive animation pattern in this video]
+2. [Another distinctive pattern]
+3. [Another]
+
+## Visual Style
+
+**Background:** #XXXXXX [or gradient definition]
+
+**Text**
+- Headlines: #XXXXXX, [size]px, [weight]
+- Body: #XXXXXX, [size]px, [weight]
+- Accent text: #XXXXXX
+
+**Product frame styling:**
+- Shadow: \`[exact value]\`
+- Border radius: [X]px
+- Border: [if any]
+
+**Other visual elements:**
+[Describe any recurring visual treatments — glow effects, gradients, shapes]
 
 ## Remotion Implementation
 
-### Component Structure
+### Project Structure
 \`\`\`
 src/
-├── Root.tsx           # Main composition
+├── Root.tsx
 ├── scenes/
-│   ├── Scene1.tsx     # [name]
-│   ├── Scene2.tsx     # [name]
-│   └── ...
+│   ├── Intro.tsx
+│   ├── Feature1.tsx
+│   └── Outro.tsx
 ├── components/
-│   ├── AnimatedText.tsx
+│   ├── AnimatedHeadline.tsx
 │   ├── ProductFrame.tsx
-│   └── ...
-└── styles/
-    └── tokens.ts      # Design tokens
+│   └── TransitionWipe.tsx
+└── lib/
+    ├── tokens.ts
+    └── animations.ts
 \`\`\`
 
-### Key Code Patterns
+### Key Patterns
 \`\`\`tsx
-// Show specific Remotion patterns to use:
-// - spring() configs
-// - interpolate() examples
-// - Sequence timing
+// Spring config for this style
+const springConfig = { mass: 1, stiffness: X, damping: X };
+
+// Common interpolation pattern
+const opacity = interpolate(frame, [0, 15], [0, 1], { extrapolateRight: 'clamp' });
+
+// Sequence timing
+<Sequence from={0} durationInFrames={90}>
+  <Scene1 />
+</Sequence>
 \`\`\`
 
-## Assets to Prepare
-To use this template, prepare:
+## Assets Needed
+To use this template:
 - [ ] Product screenshots at [resolution]
-- [ ] Logo (SVG preferred)
-- [ ] Headline copy
-- [ ] [other assets needed]
+- [ ] Logo (SVG)
+- [ ] [Other assets]
 
-## Verification
-Final video should have:
-- [ ] Smooth [X]fps playback
-- [ ] Consistent motion feel throughout
-- [ ] Color palette matches exactly
-- [ ] Transitions feel [snappy/smooth/bouncy]`,
+## The Polish Details
+[List the small touches that make this video feel professional]`,
 
   qa_clone_checklist: `
-## OUTPUT: AGENT INSTRUCTIONS — Verify Your Clone Matches
+## OUTPUT FORMAT: QA Checklist
 
-You are generating a QA checklist for an AI coding agent (or human) to verify their implementation matches the original.
-
-**IMPORTANT:** These are verification instructions, not analysis.
+Generate a verification checklist to confirm the clone matches the original.
 
 Required structure:
 
-## What You're Verifying
-- [Brief description of what was cloned]
+## What's Being Verified
+[Brief description]
 
-## Setup
-Before checking, ensure you can:
-- [ ] View original and clone side-by-side
-- [ ] Use browser devtools to inspect values
-- [ ] Record both for motion comparison (if animated)
+## Visual Checks
 
-## Visual Checklist
-
-### Colors
-- [ ] Background: matches #XXXXXX
-- [ ] Text primary: matches #XXXXXX
-- [ ] Accent/CTA: matches #XXXXXX
-- [ ] Borders: matches #XXXXXX (with correct opacity)
-[list all colors to verify]
+### Colors (exact hex match)
+- [ ] Background: #XXXXXX
+- [ ] Surface: #XXXXXX
+- [ ] Text primary: #XXXXXX
+- [ ] Text secondary: #XXXXXX
+- [ ] Accent: #XXXXXX
+- [ ] Borders: #XXXXXX (at [X]% opacity)
+[List ALL colors]
 
 ### Typography
-- [ ] Heading size: [X]px, weight [X]
-- [ ] Body size: [X]px, weight [X]
-- [ ] Line height: [X]
-- [ ] Letter spacing: [X] (if any)
+- [ ] H1: [X]px, weight [X]
+- [ ] Body: [X]px, weight [X], line-height [X]
+- [ ] Font family: [name] or fallback
 
 ### Spacing
-- [ ] Outer padding: [X]px
-- [ ] Inner gaps: [X]px
-- [ ] Element spacing: [X]px between [elements]
+- [ ] Container padding: [X]px
+- [ ] Element gaps: [X]px
+- [ ] [Specific spacing to verify]
 
 ### Shape
 - [ ] Border radius: [X]px
-- [ ] Border width: [X]px
-- [ ] Shadow: matches \`[exact value]\`
+- [ ] Shadow: \`[exact value]\`
+- [ ] Border: [width] [style] [color]
 
-## Animation Checklist (if applicable)
+## Animation Checks (if applicable)
 
 ### Timing
-- [ ] Total duration: [X]ms (tolerance: ±50ms)
-- [ ] Delay before start: [X]ms
-- [ ] Stagger between elements: [X]ms
+- [ ] Total duration: [X]ms (±50ms tolerance)
+- [ ] Delay: [X]ms
+- [ ] Stagger: [X]ms between elements
 
-### Motion Feel
-- [ ] Easing feels [snappy/smooth/bouncy] — NOT linear
-- [ ] Overshoot/bounce: [present/absent]
-- [ ] Deceleration: [fast/gradual]
+### Motion Quality
+- [ ] Easing feels [snappy/smooth/bouncy] — not linear or jerky
+- [ ] Overshoot: [yes/no] — [X]% past target if yes
+- [ ] Settles smoothly without wobble (unless intentional)
 
 ### States
-- [ ] Initial state matches exactly
-- [ ] Final state matches exactly
-- [ ] No unexpected intermediate states
+- [ ] Initial state: [describe]
+- [ ] Final state: [describe]
+- [ ] No jarring jumps between states
 
-## Interaction Checklist (if applicable)
-- [ ] Hover state triggers correctly
+## Interaction Checks (if applicable)
+- [ ] Hover triggers at correct moment
 - [ ] Click/tap feedback present
-- [ ] Focus ring visible and styled
+- [ ] Focus visible and styled correctly
 - [ ] Keyboard navigation works
 
-## Responsive Checklist (if applicable)
-- [ ] Mobile ([X]px): layout correct
-- [ ] Tablet ([X]px): layout correct
-- [ ] Desktop ([X]px+): layout correct
+## Responsive Checks (if applicable)
+- [ ] Mobile (<640px): [what to verify]
+- [ ] Tablet (640-1024px): [what to verify]
+- [ ] Desktop (>1024px): [what to verify]
+
+## The Details That Matter
+- [ ] [Subtle detail #1]
+- [ ] [Subtle detail #2]
+- [ ] [Subtle detail #3]
+[5-8 specific polish items]
 
 ## Pass/Fail Criteria
-**PASS** if:
-- All color values within tolerance (allow ±2 for hex)
-- Timing within ±50ms
-- Spacing within ±2px
-- Motion feel subjectively matches
 
-**FAIL** if:
-- Any color visibly different
-- Animation timing noticeably off
-- Layout breaks at any breakpoint
-- Interactions don't work`,
+**PASS:** All checks within tolerance
+- Colors: ±2 hex values
+- Timing: ±50ms
+- Spacing: ±2px
+- Subjective motion feel matches
+
+**FAIL if any:**
+- Color visibly wrong
+- Animation feels different
+- Layout breaks
+- Interaction doesn't work`,
 };
 
 // Model-specific guidance appended to the prompt based on model strengths.
