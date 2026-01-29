@@ -15,7 +15,7 @@ export const FORMAT_OPTIONS: FormatOption[] = [
     label: 'Clone UI Animation',
     icon: '✨',
     language: 'markdown',
-    description: 'Motion spec + timing + easing + an implementation recipe from the video',
+    description: 'Agent instructions to recreate exact motion, timing, and easing',
     bestFor: 'Micro-interactions, transitions, complex sequences',
   },
   {
@@ -23,7 +23,7 @@ export const FORMAT_OPTIONS: FormatOption[] = [
     label: 'Clone UI Component',
     icon: '🧩',
     language: 'tsx',
-    description: 'Generate a reusable React + Tailwind component that matches the video',
+    description: 'Agent instructions to build a matching React + Tailwind component',
     bestFor: 'Buttons, cards, modals, navbars, menus, widgets',
   },
   {
@@ -31,15 +31,23 @@ export const FORMAT_OPTIONS: FormatOption[] = [
     label: 'Clone Landing Page',
     icon: '🧱',
     language: 'tsx',
-    description: 'Create a landing page/section skeleton (React + Tailwind) matching layout and styling',
+    description: 'Agent instructions to recreate the page layout and sections',
     bestFor: 'Marketing pages, hero sections, pricing sections, feature grids',
+  },
+  {
+    id: 'copy_design_style',
+    label: 'Copy Design Style',
+    icon: '🪄',
+    language: 'markdown',
+    description: 'Agent instructions to apply this design style to YOUR existing product',
+    bestFor: 'Redesigning your app, adopting a new aesthetic, style refresh',
   },
   {
     id: 'extract_design_tokens',
     label: 'Extract Style & Tokens',
     icon: '🎨',
     language: 'markdown',
-    description: 'Extract palette, typography, radius, shadows, spacing, and provide reusable tokens',
+    description: 'Reusable design tokens: palette, typography, radius, shadows, spacing',
     bestFor: 'Design systems, theming, consistent UI replication',
   },
   {
@@ -47,7 +55,7 @@ export const FORMAT_OPTIONS: FormatOption[] = [
     label: 'Reuse Product Demo Style (Remotion)',
     icon: '🎬',
     language: 'markdown',
-    description: 'Convert the video into a reusable Remotion template: scenes, timing, motion style, transitions',
+    description: 'Agent instructions to create similar product demos with your assets',
     bestFor: 'Generating similar product demo videos with your own assets',
   },
   {
@@ -55,7 +63,7 @@ export const FORMAT_OPTIONS: FormatOption[] = [
     label: 'QA Checklist for Perfect Clone',
     icon: '✅',
     language: 'markdown',
-    description: 'Acceptance criteria + measurement checklist to ensure your clone matches the video',
+    description: 'Acceptance criteria to verify your clone matches the original',
     bestFor: 'Hand-off to devs, client approvals, pixel/motion perfection',
   },
 ];

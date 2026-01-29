@@ -2,6 +2,7 @@ export type OutputFormat =
   | 'clone_ui_animation'
   | 'clone_component'
   | 'clone_landing_page'
+  | 'copy_design_style'
   | 'extract_design_tokens'
   | 'remotion_demo_template'
   | 'qa_clone_checklist';
