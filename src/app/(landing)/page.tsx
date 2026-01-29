@@ -1,5 +1,5 @@
 import dynamic from 'next/dynamic';
-import { HeroSection } from '@/components/landing';
+import { HeroSection, VideoDemoSection } from '@/components/landing';
 
 // Dynamic imports for below-the-fold components to improve initial load
 const DemoSection = dynamic(
@@ -31,6 +31,7 @@ export default function LandingPage() {
   return (
     <>
       <HeroSection />
+      <VideoDemoSection />
       <DemoSection />
       <HowItWorks />
       <PricingSection />
