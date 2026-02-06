@@ -19,6 +19,7 @@ export function Header() {
 
         <nav className="header-nav">
           <a href="#video-demo" className="header-link">Demo</a>
+          <a href="#use-cases" className="header-link">Use Cases</a>
           <a href="#demo" className="header-link">Try Free</a>
           <a href="#pricing" className="header-link">Pricing</a>
         </nav>

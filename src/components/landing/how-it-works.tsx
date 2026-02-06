@@ -6,26 +6,26 @@ const steps = [
   {
     number: 1,
     icon: UploadIcon,
-    title: 'Upload Video',
-    description: 'Drop any animation video — screen recordings, prototypes, or references',
+    title: 'Upload Any Animation',
+    description: 'Drop a screen recording, prototype demo, or any video with UI animations',
   },
   {
     number: 2,
     icon: SearchIcon,
-    title: 'AI Analysis',
-    description: 'Gemini extracts motion patterns, timing, and easing curves automatically',
+    title: 'Choose Output Format',
+    description: 'Pick from 15 formats — clone code, design tokens, Tailwind config, accessibility audit, and more',
   },
   {
     number: 3,
     icon: ClipboardIcon,
-    title: 'Get Instructions',
-    description: 'Receive precise animation specs in your preferred format',
+    title: 'AI Analyzes Motion',
+    description: 'Gemini vision models extract every detail: timing, easing, colors, layout, and spatial relationships',
   },
   {
     number: 4,
     icon: RocketIcon,
-    title: 'Paste & Build',
-    description: 'Copy to Claude Code, Cursor, or any AI coding agent',
+    title: 'Use Anywhere',
+    description: 'Copy specs to Claude Code, Cursor, Figma, or integrate directly into your codebase',
   },
 ];
 
@@ -36,7 +36,7 @@ export function HowItWorks() {
         <span className="section-eyebrow">Workflow</span>
         <h2 className="section-title">How It Works</h2>
         <p className="section-subtitle">
-          Transform any animation into code-ready instructions in seconds
+          From video to structured specifications in four steps
         </p>
       </div>
       <div className="steps-grid">

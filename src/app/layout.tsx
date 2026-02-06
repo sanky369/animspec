@@ -22,25 +22,44 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'AnimSpec - Clone Any UI Animation to Code | CSS, GSAP, Framer Motion',
+  title: 'AnimSpec — AI Video Animation Analyzer | 15 Output Formats',
   description:
-    'See an animation you love? Clone it. Upload a video, get agent-ready prompts and code specs. CSS, GSAP, Framer Motion output for Claude Code, Cursor & AI coding agents.',
+    'Upload any animation video and get developer-ready specs in 15 formats: CSS keyframes, Tailwind, React Native, Lottie, Figma motion specs, accessibility audits, and more. Powered by Google Gemini AI.',
   keywords: [
+    'video animation to code',
+    'AI animation analyzer',
+    'animation to CSS keyframes',
+    'video to Tailwind animate',
     'clone UI animation',
-    'clone website animation',
-    'copy animation CSS',
+    'animation specification tool',
+    'motion design handoff',
+    'Lottie export from video',
+    'Figma motion spec',
+    'React Native Reanimated',
+    'animation accessibility audit',
+    'animation performance budget',
     'reverse engineer animation',
-    'animation handoff',
-    'video to CSS animation',
-    'animation to code',
-    'recreate animation',
-    'Claude Code animation',
-    'Cursor AI animation',
-    'GSAP timeline',
-    'Framer Motion',
-    'CSS keyframes',
+    'animation to code converter',
     'AI coding agent',
+    'Claude Code',
+    'storyboard breakdown',
+    'design token extraction',
+    'interaction state machine',
   ],
+  openGraph: {
+    title: 'AnimSpec — AI Video Animation Analyzer',
+    description:
+      'Upload any animation video and get developer-ready specs in 15 formats. Clone animations, extract design tokens, audit accessibility, and export to any framework.',
+    type: 'website',
+    siteName: 'AnimSpec.ai',
+    locale: 'en_US',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'AnimSpec — AI Video Animation Analyzer',
+    description:
+      'Upload any animation video → get structured specs in 15 formats. CSS, Tailwind, Lottie, React Native, Figma, and more.',
+  },
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
@@ -52,6 +71,9 @@ export const metadata: Metadata = {
     ],
   },
   manifest: '/manifest.json',
+  alternates: {
+    canonical: 'https://animspec.ai',
+  },
 };
 
 export default function RootLayout({

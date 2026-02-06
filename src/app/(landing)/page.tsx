@@ -20,6 +20,13 @@ const HowItWorks = dynamic(
   }
 );
 
+const UseCasesSection = dynamic(
+  () => import('@/components/landing/use-cases-section').then((m) => m.UseCasesSection),
+  {
+    loading: () => <div className="section-placeholder" />,
+  }
+);
+
 const PricingSection = dynamic(
   () => import('@/components/landing/pricing-section').then((m) => m.PricingSection),
   {
@@ -34,6 +41,7 @@ export default function LandingPage() {
       <VideoDemoSection />
       <DemoSection />
       <HowItWorks />
+      <UseCasesSection />
       <PricingSection />
     </>
   );

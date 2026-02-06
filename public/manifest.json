@@ -1,7 +1,7 @@
 {
   "name": "AnimSpec.ai",
   "short_name": "AnimSpec",
-  "description": "Transform animation videos into code-ready specifications",
+  "description": "AI video animation analyzer — upload any video, get developer-ready specs in 15 formats",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0a",

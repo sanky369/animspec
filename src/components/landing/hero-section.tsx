@@ -8,32 +8,31 @@ export function HeroSection() {
       <div className="hero-content animate-fade-in">
         <div className="hero-eyebrow">
           <ZapIcon className="w-3.5 h-3.5" />
-          <span>AI-Powered Animation Cloning</span>
+          <span>AI-Powered Video Analysis</span>
         </div>
 
         <h1 className="hero-title text-balance">
-          Clone
-          <span className="hero-title-accent">Any UI Animation</span>
-          with Ease
+          Turn Any Animation Into
+          <span className="hero-title-accent">Developer-Ready Specs</span>
         </h1>
 
         <p className="hero-subtitle text-balance">
-          See an animation you love? Record it, upload it, get agent-ready prompts.
-          Instant specs for Claude Code, Codex, and other AI coding agents.
+          Upload a video, choose from 15 output formats, get structured specifications.
+          Clone animations, extract tokens, audit accessibility, export to any framework.
         </p>
 
         <div className="hero-features">
           <div className="feature-tag stagger-1">
             <ZapIcon className="w-3.5 h-3.5" />
-            <span>Instant Analysis</span>
+            <span>15 Output Formats</span>
           </div>
           <div className="feature-tag stagger-2">
             <ClipboardIcon className="w-3.5 h-3.5" />
-            <span>CSS / GSAP / Framer</span>
+            <span>Deep AI Analysis</span>
           </div>
           <div className="feature-tag stagger-3">
             <CpuIcon className="w-3.5 h-3.5" />
-            <span>AI-Agent Ready</span>
+            <span>Agent-Ready Output</span>
           </div>
         </div>
       </div>

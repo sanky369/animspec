@@ -95,10 +95,10 @@ export function DemoSection() {
     <section className="demo-section" id="demo">
       <div className="section-header">
         <span className="section-eyebrow">Try It</span>
-        <h2 className="section-title">See It In Action</h2>
+        <h2 className="section-title">Try It Free</h2>
         <p className="section-subtitle">
-          Upload a UI animation or product demo video and get instant prompts
-          {!user && <span className="text-text-subtle"> — one free demo per device</span>}
+          Upload any animation video, pick a format, and get structured specs instantly
+          {!user && <span className="text-text-subtle"> — one free analysis per device</span>}
         </p>
       </div>
 
@@ -155,7 +155,7 @@ export function DemoSection() {
                   disabled={!canAnalyze}
                 >
                   <SparklesIcon />
-                  <span>{isAnalyzing ? 'Analyzing...' : 'Analyze Animation'}</span>
+                  <span>{isAnalyzing ? 'Analyzing...' : 'Analyze Video'}</span>
                 </button>
               </div>
             </div>
