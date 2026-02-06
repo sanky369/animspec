@@ -9,7 +9,7 @@ import type {
   ResultsMap,
   OutputFormat,
 } from '@/types/analysis';
-import { parseAnalysisOutput } from '@/lib/ai/output-parsers';
+import { parseAnalysisOutput, extractVerificationReport } from '@/lib/ai/output-parsers';
 import { extractFrameFromVideo } from '@/lib/video/extract-frame';
 import { extractFrames } from '@/lib/ffmpeg/extract-frames';
 import { createFrameGrid } from '@/lib/ffmpeg/create-grid';
@@ -49,6 +49,10 @@ interface UseAnalysisReturn {
   generatedFormats: OutputFormat[];
   streamingContent: string;
   error: string | null;
+  thinkingContent: string;
+  currentPass: number;
+  totalPasses: number;
+  passName: string;
   analyze: (file: File, metadata: VideoMetadata, config: AnalysisConfig, authToken?: string | null) => Promise<void>;
   switchFormat: (format: OutputFormat) => void;
   reset: () => void;
@@ -62,6 +66,10 @@ export function useAnalysis(): UseAnalysisReturn {
   const [activeFormat, setActiveFormat] = useState<OutputFormat | null>(null);
   const [streamingContent, setStreamingContent] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [thinkingContent, setThinkingContent] = useState('');
+  const [currentPass, setCurrentPass] = useState(0);
+  const [totalPasses, setTotalPasses] = useState(0);
+  const [passName, setPassName] = useState('');
 
   // Get list of formats that have been generated
   const generatedFormats = Object.keys(resultsMap) as OutputFormat[];
@@ -72,6 +80,10 @@ export function useAnalysis(): UseAnalysisReturn {
       setError(null);
       setResult(null);
       setStreamingContent('');
+      setThinkingContent('');
+      setCurrentPass(0);
+      setTotalPasses(0);
+      setPassName('');
 
       let frameImage: string | undefined;
       let frameGrid: {
@@ -156,6 +168,9 @@ export function useAnalysis(): UseAnalysisReturn {
         formData.append('videoName', metadata.name);
         if (config.triggerContext) {
           formData.append('triggerContext', config.triggerContext);
+        }
+        if (config.agenticMode) {
+          formData.append('agenticMode', 'true');
         }
         if (frameGrid) {
           formData.append('frameGridBase64', frameGrid.base64);
@@ -310,6 +325,27 @@ export function useAnalysis(): UseAnalysisReturn {
 
             if (data.type === 'progress') {
               setProgress({ step: 'generating', message: data.message });
+            } else if (data.type === 'pass_start') {
+              const passStepMap: Record<number, string> = {
+                1: 'pass_1_decomposing',
+                2: 'pass_2_analyzing',
+                3: 'pass_3_generating',
+                4: 'pass_4_verifying',
+              };
+              setCurrentPass(data.pass);
+              setTotalPasses(data.totalPasses);
+              setPassName(data.passName);
+              setProgress({
+                step: (passStepMap[data.pass] || 'analyzing') as AnalysisProgress['step'],
+                message: `Pass ${data.pass}/${data.totalPasses}: ${data.passName}...`,
+                currentPass: data.pass,
+                totalPasses: data.totalPasses,
+                passName: data.passName,
+              });
+            } else if (data.type === 'pass_complete') {
+              // Pass completed, keep progress updated
+            } else if (data.type === 'thinking') {
+              setThinkingContent((prev) => prev + data.data);
             } else if (data.type === 'chunk') {
               fullContent += data.data;
               setStreamingContent(fullContent);
@@ -336,10 +372,19 @@ export function useAnalysis(): UseAnalysisReturn {
 
         // Parse the result and include the extracted frame
         const parsedResult = parseAnalysisOutput(fullContent, config.format);
-        const newResult = {
+        const newResult: AnalysisResult = {
           ...parsedResult,
           frameImage,
         };
+
+        // For agentic mode, extract the verification report from Pass 4 output
+        if (config.agenticMode) {
+          const verification = extractVerificationReport(fullContent);
+          if (verification) {
+            newResult.verificationScore = verification.overallScore;
+            newResult.verificationReport = verification;
+          }
+        }
         setResult(newResult);
         setResultsMap((prev) => ({
           ...prev,
@@ -374,6 +419,10 @@ export function useAnalysis(): UseAnalysisReturn {
     setActiveFormat(null);
     setStreamingContent('');
     setError(null);
+    setThinkingContent('');
+    setCurrentPass(0);
+    setTotalPasses(0);
+    setPassName('');
   }, []);
 
   return {
@@ -385,6 +434,10 @@ export function useAnalysis(): UseAnalysisReturn {
     generatedFormats,
     streamingContent,
     error,
+    thinkingContent,
+    currentPass,
+    totalPasses,
+    passName,
     analyze,
     switchFormat,
     reset,

@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { CodeOutput } from './code-output';
 import { FramePreview } from './frame-preview';
+import { AgenticProgress } from '@/components/analysis/agentic-progress';
 import { Tabs } from '@/components/ui';
-import type { AnalysisResult, AnalysisProgress, OutputFormat } from '@/types/analysis';
+import type { AnalysisResult, AnalysisProgress, OutputFormat, VerificationReport } from '@/types/analysis';
 import { TargetIcon, CheckIcon, VideoIcon, SearchIcon, CodeIcon, SparklesIcon } from '@/components/ui/icons';
 
 interface OutputPanelProps {
@@ -13,29 +14,71 @@ interface OutputPanelProps {
   streamingContent: string;
   generatedFormats?: OutputFormat[];
   onFormatChange?: (format: OutputFormat) => void;
+  // Agentic mode props
+  agenticMode?: boolean;
+  thinkingContent?: string;
+  currentPass?: number;
+  totalPasses?: number;
+  passName?: string;
 }
 
-const tabs = [
+const standardTabs = [
   { id: 'code', label: 'Code' },
   { id: 'reference', label: 'Reference Image' },
   { id: 'overview', label: 'Overview' },
 ];
 
-export function OutputPanel({ result, progress, streamingContent, generatedFormats, onFormatChange }: OutputPanelProps) {
+const agenticTabs = [
+  { id: 'code', label: 'Code' },
+  { id: 'verification', label: 'Verification' },
+  { id: 'reference', label: 'Reference Image' },
+  { id: 'overview', label: 'Overview' },
+];
+
+export function OutputPanel({
+  result,
+  progress,
+  streamingContent,
+  generatedFormats,
+  onFormatChange,
+  agenticMode,
+  thinkingContent,
+  currentPass,
+  totalPasses,
+  passName,
+}: OutputPanelProps) {
   const [activeTab, setActiveTab] = useState('code');
+
+  const hasVerification = result?.verificationReport || result?.verificationScore != null;
+  const tabs = hasVerification ? agenticTabs : standardTabs;
 
   // Loading state
   if (progress && progress.step !== 'complete' && progress.step !== 'error') {
+    const isAgenticLoading = agenticMode && (currentPass ?? 0) > 0;
+
     return (
       <div className="card h-full min-h-[500px]">
         <div className="card-header">
           <div className="card-icon">
             <ClipboardIcon />
           </div>
-          <span className="card-title">Agent-ready Instructions</span>
+          <span className="card-title">
+            {isAgenticLoading ? 'Deep Analysis Pipeline' : 'Agent-ready Instructions'}
+          </span>
         </div>
         <div className="card-body">
-          <LoadingState progress={progress} streamingContent={streamingContent} />
+          {isAgenticLoading ? (
+            <AgenticProgress
+              currentPass={currentPass ?? 0}
+              totalPasses={totalPasses ?? 4}
+              passName={passName ?? ''}
+              streamingContent={streamingContent}
+              thinkingContent={thinkingContent ?? ''}
+              message={progress.message}
+            />
+          ) : (
+            <LoadingState progress={progress} streamingContent={streamingContent} />
+          )}
         </div>
       </div>
     );
@@ -93,6 +136,9 @@ export function OutputPanel({ result, progress, streamingContent, generatedForma
           <ClipboardIcon />
         </div>
         <span className="card-title">Agent-ready Instructions</span>
+        {result.verificationScore != null && (
+          <VerificationBadge score={result.verificationScore} />
+        )}
       </div>
       <Tabs tabs={tabs} defaultTab="code" onChange={setActiveTab} />
       <div className="card-body">
@@ -104,6 +150,9 @@ export function OutputPanel({ result, progress, streamingContent, generatedForma
             generatedFormats={generatedFormats}
             onFormatChange={onFormatChange}
           />
+        )}
+        {activeTab === 'verification' && (
+          <VerificationTab report={result.verificationReport} score={result.verificationScore} />
         )}
         {activeTab === 'reference' && (
           <FramePreview frameImage={result.frameImage} />
@@ -218,6 +267,142 @@ function LoadingState({ progress, streamingContent }: { progress: AnalysisProgre
           </div>
           <p className="streaming-content">
             {streamingContent.slice(-400)}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VerificationBadge({ score }: { score: number }) {
+  const color = score >= 90 ? '#22c55e' : score >= 75 ? '#f59e0b' : score >= 50 ? '#f97316' : '#ef4444';
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '4px',
+      marginLeft: 'auto',
+      padding: '2px 10px',
+      borderRadius: 'var(--radius-full)',
+      background: `${color}15`,
+      border: `1px solid ${color}30`,
+      fontSize: '12px',
+      fontWeight: 600,
+      color,
+    }}>
+      {score}/100
+    </span>
+  );
+}
+
+function VerificationTab({ report, score }: { report?: VerificationReport; score?: number }) {
+  if (!report && score == null) {
+    return (
+      <div className="empty-state">
+        <p className="empty-state-subtitle">No verification data available</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Score header */}
+      {score != null && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          padding: '16px',
+          background: 'var(--bg-subtle)',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-default)',
+        }}>
+          <div style={{
+            fontSize: '32px',
+            fontWeight: 700,
+            color: score >= 90 ? '#22c55e' : score >= 75 ? '#f59e0b' : score >= 50 ? '#f97316' : '#ef4444',
+            fontFamily: 'var(--font-mono), monospace',
+          }}>
+            {score}
+          </div>
+          <div>
+            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+              Fidelity Score
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              {score >= 90 ? 'Near perfect match' : score >= 75 ? 'Good match, minor adjustments needed' : score >= 50 ? 'Decent match, some corrections needed' : 'Significant discrepancies found'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Discrepancies */}
+      {report?.discrepancies && report.discrepancies.length > 0 && (
+        <div>
+          <h4 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+            Discrepancies ({report.discrepancies.length})
+          </h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {report.discrepancies.map((d, i) => (
+              <div key={i} style={{
+                padding: '10px 12px',
+                background: 'var(--bg-subtle)',
+                borderRadius: 'var(--radius-sm)',
+                borderLeft: `3px solid ${d.severity === 'critical' ? '#ef4444' : d.severity === 'major' ? '#f97316' : '#f59e0b'}`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <span style={{
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    color: d.severity === 'critical' ? '#ef4444' : d.severity === 'major' ? '#f97316' : '#f59e0b',
+                  }}>
+                    {d.severity}
+                  </span>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    {d.element}
+                  </span>
+                </div>
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                  {d.issue}
+                </p>
+                {d.suggestedFix && (
+                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '4px 0 0', lineHeight: 1.4 }}>
+                    Fix: {d.suggestedFix}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Corrections */}
+      {report?.corrections && report.corrections.length > 0 && (
+        <div>
+          <h4 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+            Suggested Corrections
+          </h4>
+          <ul style={{ margin: 0, paddingLeft: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {report.corrections.map((c, i) => (
+              <li key={i} style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                {c}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Summary */}
+      {report?.summary && (
+        <div style={{
+          padding: '12px',
+          background: 'var(--bg-subtle)',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-default)',
+        }}>
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
+            {report.summary}
           </p>
         </div>
       )}

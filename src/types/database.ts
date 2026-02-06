@@ -10,6 +10,13 @@ export const CREDIT_COSTS: Record<QualityLevel, number> = {
   kimi: 5,
 };
 
+// Agentic mode credit costs (4-pass pipeline)
+export const AGENTIC_CREDIT_COSTS: Record<QualityLevel, number> = {
+  balanced: 5,
+  precise: 30,
+  kimi: 5, // Kimi doesn't support agentic mode
+};
+
 // Pack types
 export type PackType = 'creator' | 'pro';
 

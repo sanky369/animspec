@@ -39,7 +39,16 @@ function getFormatLabel(format: string): string {
     case 'clone_landing_page': return 'Landing Page';
     case 'extract_design_tokens': return 'Style & Tokens';
     case 'remotion_demo_template': return 'Remotion Template';
+    case 'copy_design_style': return 'Design Style';
     case 'qa_clone_checklist': return 'QA Checklist';
+    case 'accessibility_audit': return 'A11y Audit';
+    case 'interaction_state_machine': return 'State Machine';
+    case 'performance_budget': return 'Perf Budget';
+    case 'lottie_rive_export': return 'Lottie/Rive';
+    case 'storyboard_breakdown': return 'Storyboard';
+    case 'tailwind_animate': return 'Tailwind Animate';
+    case 'react_native_reanimated': return 'React Native';
+    case 'figma_motion_spec': return 'Figma Spec';
     default: return format;
   }
 }

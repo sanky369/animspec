@@ -6,8 +6,9 @@ import {
   type GeminiQualityLevel,
 } from '@/lib/ai/gemini';
 import { analyzeVideoWithKimiStream } from '@/lib/ai/kimi';
+import { runAgenticPipeline } from '@/lib/ai/agentic-pipeline';
 import { adminAuth, adminDb, adminStorage } from '@/lib/firebase/admin';
-import { COLLECTIONS, CREDIT_COSTS, MAX_ANALYSES_PER_USER } from '@/types/database';
+import { COLLECTIONS, CREDIT_COSTS, AGENTIC_CREDIT_COSTS, MAX_ANALYSES_PER_USER } from '@/types/database';
 import { FieldValue } from 'firebase-admin/firestore';
 import type { OutputFormat, QualityLevel, TriggerContext, VideoMetadata } from '@/types/analysis';
 import { extractOverview } from '@/lib/ai/output-parsers';
@@ -64,7 +65,8 @@ async function verifyAuth(request: NextRequest): Promise<string | null> {
 
 async function checkCredits(
   userId: string,
-  quality: QualityLevel
+  quality: QualityLevel,
+  agenticMode: boolean = false
 ): Promise<{ canProceed: boolean; error?: string }> {
   const profileRef = adminDb.collection(COLLECTIONS.PROFILES).doc(userId);
   const profileSnap = await profileRef.get();
@@ -74,7 +76,7 @@ async function checkCredits(
   }
 
   const profile = profileSnap.data();
-  const cost = CREDIT_COSTS[quality];
+  const cost = agenticMode ? AGENTIC_CREDIT_COSTS[quality] : CREDIT_COSTS[quality];
   const balance = profile?.creditsBalance ?? 0;
 
   if (balance < cost) {
@@ -103,9 +105,10 @@ async function deductCreditsAndSaveAnalysis(
   code: string,
   frameImageBase64: string | null,
   videoName: string,
-  videoDuration: number
+  videoDuration: number,
+  cost?: number
 ): Promise<{ success: boolean; error?: string }> {
-  const cost = CREDIT_COSTS[quality];
+  const creditCost = cost ?? CREDIT_COSTS[quality];
   const profileRef = adminDb.collection(COLLECTIONS.PROFILES).doc(userId);
 
   try {
@@ -144,11 +147,11 @@ async function deductCreditsAndSaveAnalysis(
       }
 
       const profile = profileDoc.data();
-      if ((profile?.creditsBalance ?? 0) < cost) {
+      if ((profile?.creditsBalance ?? 0) < creditCost) {
         throw new Error('Insufficient credits');
       }
 
-      const newBalance = (profile?.creditsBalance ?? 0) - cost;
+      const newBalance = (profile?.creditsBalance ?? 0) - creditCost;
 
       // Update profile
       transaction.update(profileRef, {
@@ -168,7 +171,7 @@ async function deductCreditsAndSaveAnalysis(
         frameImageUrl,
         videoName,
         videoDuration,
-        creditsUsed: cost,
+        creditsUsed: creditCost,
         createdAt: FieldValue.serverTimestamp(),
       });
 
@@ -176,7 +179,7 @@ async function deductCreditsAndSaveAnalysis(
       const txRef = adminDb.collection(COLLECTIONS.CREDIT_TRANSACTIONS).doc();
       transaction.set(txRef, {
         userId,
-        amount: -cost,
+        amount: -creditCost,
         type: 'analysis',
         quality,
         description: `Analysis (${quality} quality)`,
@@ -205,6 +208,7 @@ export async function POST(request: NextRequest) {
     const format = formData.get('format') as OutputFormat;
     const quality = formData.get('quality') as QualityLevel;
     const triggerContext = formData.get('triggerContext') as TriggerContext | null;
+    const agenticMode = formData.get('agenticMode') === 'true';
     const fileSizeStr = formData.get('fileSize') as string | null;
     const fileSize = fileSizeStr ? parseInt(fileSizeStr, 10) : 0;
     const videoMetadata = parseVideoMetadata(formData);
@@ -274,7 +278,7 @@ export async function POST(request: NextRequest) {
 
     // If authenticated, check credits
     if (isAuthenticated) {
-      const creditCheck = await checkCredits(userId, quality);
+      const creditCheck = await checkCredits(userId, quality, agenticMode);
       if (!creditCheck.canProceed) {
         return new Response(
           JSON.stringify({ error: creditCheck.error }),
@@ -297,63 +301,137 @@ export async function POST(request: NextRequest) {
           )
         );
 
-        let analysisStream: AsyncGenerator<string, void, unknown>;
-
-        // Route to appropriate AI provider based on quality level
-        if (quality === 'kimi') {
-          // Kimi K2.5 only supports inline base64 (no Files API)
-          if (!videoBase64 || !mimeType) {
-            throw new Error('Kimi K2.5 requires inline video data. Large files (>20MB) are not supported.');
-          }
-          analysisStream = analyzeVideoWithKimiStream({
-            videoBase64,
-            mimeType,
-            format,
-            triggerContext,
-            videoMetadata,
-            fileSize,
-            analysisImages,
-          });
-        } else if (fileUri && fileMimeType) {
-          analysisStream = analyzeVideoWithGeminiFileStream({
-            fileUri,
-            fileMimeType,
-            format,
-            quality: quality as GeminiQualityLevel,
-            triggerContext,
-            videoMetadata,
-            analysisImages,
-          });
-        } else if (videoBase64 && mimeType) {
-          analysisStream = analyzeVideoWithGeminiStream({
-            videoBase64,
-            mimeType,
-            format,
-            quality: quality as GeminiQualityLevel,
-            triggerContext,
-            videoMetadata,
-            fileSize,
-            analysisImages,
-          });
-        } else {
-          throw new Error('Invalid video data configuration');
-        }
-
         let fullResult = '';
 
-        for await (const chunk of analysisStream) {
-          fullResult += chunk;
-          await writer.write(
-            encoder.encode(
-              `data: ${JSON.stringify({ type: 'chunk', data: chunk })}\n\n`
-            )
-          );
+        // === AGENTIC MODE: 4-pass pipeline ===
+        if (agenticMode && quality !== 'kimi') {
+          const pipeline = runAgenticPipeline({
+            videoBase64: videoBase64 || undefined,
+            mimeType: mimeType || undefined,
+            fileUri: fileUri || undefined,
+            fileMimeType: fileMimeType || undefined,
+            format,
+            quality: quality as GeminiQualityLevel,
+            triggerContext,
+            videoMetadata,
+            analysisImages,
+          });
+
+          for await (const event of pipeline) {
+            switch (event.type) {
+              case 'pass_start':
+                await writer.write(
+                  encoder.encode(
+                    `data: ${JSON.stringify({
+                      type: 'pass_start',
+                      pass: event.pass,
+                      passName: event.passName,
+                      totalPasses: event.totalPasses,
+                    })}\n\n`
+                  )
+                );
+                break;
+
+              case 'pass_complete':
+                await writer.write(
+                  encoder.encode(
+                    `data: ${JSON.stringify({
+                      type: 'pass_complete',
+                      pass: event.pass,
+                      passName: event.passName,
+                    })}\n\n`
+                  )
+                );
+                break;
+
+              case 'thinking':
+                await writer.write(
+                  encoder.encode(
+                    `data: ${JSON.stringify({
+                      type: 'thinking',
+                      pass: event.pass,
+                      data: event.data,
+                    })}\n\n`
+                  )
+                );
+                break;
+
+              case 'chunk':
+                fullResult += event.data;
+                await writer.write(
+                  encoder.encode(
+                    `data: ${JSON.stringify({
+                      type: 'chunk',
+                      pass: event.pass,
+                      data: event.data,
+                    })}\n\n`
+                  )
+                );
+                break;
+
+              case 'error':
+                throw new Error(event.data || 'Pipeline pass failed');
+            }
+          }
+
+        } else {
+          // === STANDARD MODE: single-pass analysis ===
+          let analysisStream: AsyncGenerator<string, void, unknown>;
+
+          // Route to appropriate AI provider based on quality level
+          if (quality === 'kimi') {
+            if (!videoBase64 || !mimeType) {
+              throw new Error('Kimi K2.5 requires inline video data. Large files (>20MB) are not supported.');
+            }
+            analysisStream = analyzeVideoWithKimiStream({
+              videoBase64,
+              mimeType,
+              format,
+              triggerContext,
+              videoMetadata,
+              fileSize,
+              analysisImages,
+            });
+          } else if (fileUri && fileMimeType) {
+            analysisStream = analyzeVideoWithGeminiFileStream({
+              fileUri,
+              fileMimeType,
+              format,
+              quality: quality as GeminiQualityLevel,
+              triggerContext,
+              videoMetadata,
+              analysisImages,
+            });
+          } else if (videoBase64 && mimeType) {
+            analysisStream = analyzeVideoWithGeminiStream({
+              videoBase64,
+              mimeType,
+              format,
+              quality: quality as GeminiQualityLevel,
+              triggerContext,
+              videoMetadata,
+              fileSize,
+              analysisImages,
+            });
+          } else {
+            throw new Error('Invalid video data configuration');
+          }
+
+          for await (const chunk of analysisStream) {
+            fullResult += chunk;
+            await writer.write(
+              encoder.encode(
+                `data: ${JSON.stringify({ type: 'chunk', data: chunk })}\n\n`
+              )
+            );
+          }
         }
 
         // If authenticated, deduct credits and save analysis
         if (isAuthenticated && userId) {
           const overview = extractOverview(fullResult);
           const code = fullResult;
+          const cost = agenticMode ? AGENTIC_CREDIT_COSTS[quality] : CREDIT_COSTS[quality];
 
           const result = await deductCreditsAndSaveAnalysis(
             userId,
@@ -364,7 +442,8 @@ export async function POST(request: NextRequest) {
             code,
             frameGridBase64,
             videoMetadata?.name || 'Unknown',
-            videoMetadata?.duration || 0
+            videoMetadata?.duration || 0,
+            cost
           );
 
           if (!result.success) {

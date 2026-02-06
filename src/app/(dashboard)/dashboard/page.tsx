@@ -7,10 +7,11 @@ import { UploadZone, VideoPreview } from '@/components/upload';
 import { FormatSelector } from '@/components/config/format-selector';
 import { QualitySelector } from '@/components/config/quality-selector';
 import { TriggerContext } from '@/components/config/trigger-context';
+import { AgenticToggle } from '@/components/config/agentic-toggle';
 import { OutputPanel } from '@/components/output';
 import { useVideoUpload, useAnalysis } from '@/hooks';
 import type { AnalysisConfig, VideoMetadata } from '@/types/analysis';
-import { VideoIcon, SparklesIcon } from '@/components/ui/icons';
+import { VideoIcon, SparklesIcon, ZapIcon } from '@/components/ui/icons';
 
 export default function DashboardPage() {
   const { profile, refreshProfile, refreshToken } = useAuth();
@@ -19,6 +20,7 @@ export default function DashboardPage() {
     format: 'clone_ui_animation',
     quality: 'balanced',
     triggerContext: null,
+    agenticMode: true, // Default ON for hackathon
   });
 
   const {
@@ -35,6 +37,10 @@ export default function DashboardPage() {
     result,
     generatedFormats,
     streamingContent,
+    thinkingContent,
+    currentPass,
+    totalPasses,
+    passName,
     analyze,
     switchFormat,
     reset: resetAnalysis,
@@ -114,6 +120,13 @@ export default function DashboardPage() {
               isPaidUser={profile?.isPaidUser ?? false}
             />
 
+            <AgenticToggle
+              value={config.agenticMode ?? false}
+              onChange={(agenticMode) => setConfig({ ...config, agenticMode })}
+              disabled={isAnalyzing}
+              quality={config.quality}
+            />
+
             <TriggerContext
               value={config.triggerContext}
               onChange={(triggerContext) => setConfig({ ...config, triggerContext })}
@@ -125,8 +138,8 @@ export default function DashboardPage() {
               onClick={handleAnalyze}
               disabled={!canAnalyze}
             >
-              <SparklesIcon />
-              <span>{isAnalyzing ? 'Analyzing...' : 'Analyze Animation'}</span>
+              {config.agenticMode ? <ZapIcon /> : <SparklesIcon />}
+              <span>{isAnalyzing ? 'Analyzing...' : config.agenticMode ? 'Deep Analyze' : 'Analyze Animation'}</span>
             </button>
           </div>
         </div>
@@ -138,6 +151,11 @@ export default function DashboardPage() {
           streamingContent={streamingContent}
           generatedFormats={generatedFormats}
           onFormatChange={switchFormat}
+          agenticMode={config.agenticMode}
+          thinkingContent={thinkingContent}
+          currentPass={currentPass}
+          totalPasses={totalPasses}
+          passName={passName}
         />
       </div>
     </>
