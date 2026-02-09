@@ -1,41 +1,41 @@
-# AnimSpec.ai Architecture
+# AnimSpec.ai - Architecture Documentation
 
 > A micro-SaaS tool that converts video animations into structured text instructions for AI coding agents (Claude Code, Cursor, Codex).
 
 ## Overview
 
-AnimSpec.ai solves the problem that AI models cannot process video inputs, forcing developers to manually describe animations—a tedious, error-prone process. It analyzes uploaded animation videos and generates precise, implementable specifications.
+AnimSpec.ai solves the problem that AI coding agents cannot process video inputs, forcing developers to manually describe animations — a tedious, error-prone process. It analyzes uploaded animation videos using Google Gemini 3 vision models and generates precise, implementable specifications across 15 output formats.
 
 ## High-Level Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  FRONTEND (React 19 + Tailwind CSS 4)                       │
-│  - Landing page with demo & pricing                         │
-│  - Authenticated dashboard with analysis, history, account  │
-│  - Real-time streaming results display                      │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│  FRONTEND (React 19 + Tailwind CSS 4)                        │
+│  - Landing page with demo & pricing                          │
+│  - Authenticated dashboard with analysis, history, account   │
+│  - Real-time SSE streaming results display                   │
+│  - Client-side FFmpeg WASM for keyframe extraction           │
+└──────────────────────────────────────────────────────────────┘
               ↓ (POST requests + auth cookies)
-┌─────────────────────────────────────────────────────────────┐
-│  API LAYER (Next.js Route Handlers)                         │
-│  - /api/upload      → Gemini Files API (large Gemini files) │
-│  - /api/upload-url  → R2 presigned URL (large Kimi files)   │
-│  - /api/analyze     → AI analysis streaming + credit deduct │
-│  - /api/analyses    → User history                          │
-│  - /api/checkout    → Lemon Squeezy payment                 │
-│  - /api/webhooks    → Payment confirmation                  │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│  API LAYER (Next.js Route Handlers)                          │
+│  - /api/upload      → Gemini Files API (large Gemini files)  │
+│  - /api/upload-url  → R2 presigned URL (large Kimi files)    │
+│  - /api/analyze     → AI analysis streaming + credit deduct  │
+│  - /api/analyses    → User history CRUD                      │
+│  - /api/checkout    → Lemon Squeezy payment                  │
+│  - /api/webhooks    → Payment confirmation                   │
+└──────────────────────────────────────────────────────────────┘
               ↓ (async operations)
-┌─────────────────────────────────────────────────────────────┐
-│  BACKEND SERVICES                                           │
-│  - Firebase Auth (email/password + Google OAuth)            │
-│  - Firestore (profiles, analyses, transactions, purchases)  │
-│  - Firebase Storage (frame images)                          │
-│  - Cloudflare R2 (temporary video storage for large files)  │
-│  - Gemini AI (video analysis — fast/balanced/precise)       │
-│  - Kimi K2.5 (video analysis — thinking mode)               │
-│  - Lemon Squeezy (payments)                                 │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│  BACKEND SERVICES                                            │
+│  - Firebase Auth (email/password + Google OAuth)             │
+│  - Firestore (profiles, analyses, transactions, purchases)   │
+│  - Firebase Storage (frame images)                           │
+│  - Cloudflare R2 (temporary video storage for large files)   │
+│  - Gemini 3 AI (video analysis — balanced/precise)           │
+│  - Lemon Squeezy (payments)                                  │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ## Tech Stack
@@ -43,19 +43,232 @@ AnimSpec.ai solves the problem that AI models cannot process video inputs, forci
 | Layer | Technology |
 |-------|------------|
 | Frontend | React 19, Next.js 15 (App Router), Tailwind CSS 4 |
-| Backend | Node.js runtime, Next.js API Routes |
-| AI | Google Gemini API (@google/genai SDK), Kimi K2.5 (OpenAI SDK via Moonshot API) |
+| Backend | Node.js runtime, Next.js API Routes (serverless) |
+| AI | Google Gemini 3 API (`@google/genai` SDK) |
 | Auth | Firebase Authentication |
 | Database | Firestore |
 | Storage | Firebase Storage (frame images), Cloudflare R2 (temporary video uploads) |
 | Payments | Lemon Squeezy |
-| Video Processing | FFmpeg.wasm (client-side, optional) |
+| Video Processing | FFmpeg.wasm (client-side keyframe extraction) |
 | Cloud Storage SDK | aws4fetch (lightweight S3-compatible signing for R2) |
 | UI Libraries | react-dropzone, shiki (syntax highlighting) |
 
 ---
 
-## Authentication & Authorization
+## Core Data Flow
+
+```
+                            ┌──────────────────────┐
+                            │    User Upload        │
+                            │  (MP4/WebM/MOV)       │
+                            └──────────┬───────────┘
+                                       │
+                            ┌──────────▼───────────┐
+                            │   Validate & Extract  │
+                            │  - Max 100MB check    │
+                            │  - Metadata extraction│
+                            │  - FFmpeg keyframes   │
+                            └──────────┬───────────┘
+                                       │
+                         ┌─────────────┼─────────────┐
+                         │             │             │
+                    < 4MB          4-20MB        20-100MB
+                         │             │             │
+                   ┌─────▼─────┐ ┌─────▼─────┐ ┌─────▼─────┐
+                   │ Inline    │ │ Gemini    │ │ Gemini    │
+                   │ Base64    │ │ Files API │ │ Files API │
+                   └─────┬─────┘ └─────┬─────┘ └─────┬─────┘
+                         └─────────────┼─────────────┘
+                                       │
+                            ┌──────────▼───────────┐
+                            │  Choose Analysis Mode │
+                            └──────────┬───────────┘
+                         ┌─────────────┼─────────────┐
+                         │                           │
+                 Standard (1-pass)           Agentic (4-pass)
+                         │                           │
+                 ┌───────▼───────┐          ┌────────▼────────┐
+                 │ Single AI call│          │ Pass 1: Scene   │
+                 │ with format   │          │   Decomposition │
+                 │ template      │          │ Pass 2: Deep    │
+                 └───────┬───────┘          │   Motion Anal.  │
+                         │                  │ Pass 3: Code    │
+                         │                  │   Generation    │
+                         │                  │ Pass 4: Self-   │
+                         │                  │   Verification  │
+                         │                  └────────┬────────┘
+                         └─────────────┬─────────────┘
+                                       │
+                            ┌──────────▼───────────┐
+                            │  Stream via SSE       │
+                            │  - Progress updates   │
+                            │  - Thinking traces    │
+                            │  - Code chunks        │
+                            └──────────┬───────────┘
+                                       │
+                            ┌──────────▼───────────┐
+                            │  Parse & Display      │
+                            │  - Code tab           │
+                            │  - Overview tab       │
+                            │  - Frame preview tab  │
+                            │  - Verification tab   │
+                            └──────────┬───────────┘
+                                       │
+                            ┌──────────▼───────────┐
+                            │  Save & Deduct        │
+                            │  - Firestore record   │
+                            │  - Firebase Storage   │
+                            │  - Credit deduction   │
+                            └──────────────────────┘
+```
+
+---
+
+## AI Integration
+
+### Gemini 3 Models
+
+| Quality Level | Model | Max Tokens | Temperature | Thinking |
+|---------------|-------|------------|-------------|----------|
+| `balanced` | `gemini-3-flash-preview` | 8,192 | 0.2 | High |
+| `precise` | `gemini-3-pro-preview` | 16,384 | 0.1 | High |
+
+Both models use Gemini 3's thinking mode (`thinkingLevel: 'high'`) for deeper reasoning about animation patterns, timing, and spatial relationships.
+
+### Gemini Functions
+
+**File:** `src/lib/ai/gemini.ts`
+
+| Function | Streaming | Method |
+|----------|-----------|--------|
+| `analyzeVideoWithGemini()` | No | Base64 inline |
+| `analyzeVideoWithGeminiStream()` | Yes | Base64 inline |
+| `analyzeVideoWithGeminiFile()` | No | Files API (fileUri) |
+| `analyzeVideoWithGeminiFileStream()` | Yes | Files API (primary path) |
+
+### Agentic 4-Pass Pipeline
+
+**File:** `src/lib/ai/agentic-pipeline.ts`
+
+The agentic pipeline uses different models per pass to optimize cost and quality:
+
+| Pass | Name | Model (Balanced) | Model (Precise) | Purpose |
+|------|------|-------------------|------------------|---------|
+| 1 | Scene Decomposition | `gemini-3-flash-preview` | `gemini-3-flash-preview` | Identify all animated elements, initial/final states |
+| 2 | Deep Motion Analysis | `gemini-3-flash-preview` | `gemini-3-pro-preview` | Analyze timing, easing, subtle movements |
+| 3 | Code Generation | `gemini-3-flash-preview` | `gemini-3-pro-preview` | Generate implementation code in chosen format |
+| 4 | Self-Verification | `gemini-3-flash-preview` | `gemini-3-flash-preview` | Compare output against original video, score 0-100 |
+
+Each pass streams results via SSE with `pass_start`, `thinking`, `chunk`, and `pass_complete` events. Previous pass outputs are fed as context into subsequent passes.
+
+### Prompt Engineering
+
+**File:** `src/lib/ai/prompts.ts`
+
+System prompts are constructed from multiple components:
+
+```
+System Prompt = Role Definition ("expert animation analyst")
+              + Analysis Instructions (step-by-step process)
+              + Format Template (format-specific syntax rules)
+              + Trigger Context (hover/click/scroll/load/loop/focus)
+              + Video Metadata (dimensions, duration, size)
+              + Quality Rules (accuracy guidelines)
+```
+
+Each of the 15 output formats has a dedicated template with syntax rules, code structure patterns, and best practices for that framework.
+
+### Streaming Architecture
+
+```
+Server (route.ts)                          Client (use-analysis.ts)
+─────────────────                          ────────────────────────
+TransformStream                            EventSource / fetch reader
+     │                                           │
+     ├─ write({ type: 'progress' })  ──────►    Update progress bar
+     ├─ write({ type: 'thinking' })  ──────►    Show thinking trace
+     ├─ write({ type: 'chunk' })     ──────►    Append to streaming content
+     ├─ write({ type: 'pass_start' })──────►    Update pass indicator
+     ├─ write({ type: 'pass_complete' })───►    Mark pass done
+     └─ write({ type: 'complete' })  ──────►    Parse final output
+```
+
+SSE format: `data: ${JSON.stringify(payload)}\n\n`
+
+---
+
+## API Routes
+
+### `POST /api/analyze`
+Main analysis endpoint with SSE streaming response.
+
+- **Input:** FormData with video (base64 or fileUri), format, quality, trigger context, agentic mode flag, frame grid images
+- **Output:** SSE stream with progress, thinking, chunk, and completion events
+- **Auth:** Optional (demo mode allowed without login)
+- **Credits:** Deducted based on quality/mode (balanced: 3, precise: 20, agentic balanced: 5, agentic precise: 30)
+- **Timeout:** 300 seconds
+
+### `POST /api/upload`
+Upload large videos (>20MB) to the Gemini Files API.
+
+- **Input:** Video file (max 100MB)
+- **Output:** `{ name, uri, mimeType, sizeBytes, state }`
+- **Details:** Polls until file state is `ACTIVE` (max 30s)
+
+### `POST /api/upload-url`
+Get presigned URL for Cloudflare R2 direct upload.
+
+- **Input:** `{ fileName, contentType, contentLength }`
+- **Output:** `{ uploadUrl, objectKey }`
+- **Details:** Presigned URL valid for 1 hour
+
+### `GET/POST/DELETE /api/analyses`
+CRUD operations for analysis history, scoped to authenticated user.
+
+### `POST /api/checkout`
+Create Lemon Squeezy checkout session for credit packs.
+
+### `POST /api/webhooks/lemon-squeezy`
+Handle payment webhooks (`order.created`, `order.refunded`, `subscription.payment_success`).
+
+---
+
+## Output Formats (15 Formats)
+
+### Clone Group — Recreate What You See
+| Format | Description | Best For |
+|--------|-------------|----------|
+| `clone_ui_animation` | JS/CSS keyframes with timing and easing | Micro-interactions, transitions, complex sequences |
+| `clone_component` | React + Tailwind component reproduction | Buttons, cards, modals, navbars, widgets |
+| `clone_landing_page` | Full page React component layout | Marketing pages, hero sections, pricing grids |
+
+### Extract Group — Design Assets & Specs
+| Format | Description | Best For |
+|--------|-------------|----------|
+| `copy_design_style` | CSS style guide for reuse across products | Redesigning your app, style refresh |
+| `extract_design_tokens` | Colors, typography, spacing, shadows | Design systems, theming, consistent UI |
+| `figma_motion_spec` | Figma Smart Animate properties & prototype interactions | Figma prototypes, designer-developer handoff |
+
+### Export Group — Framework-Specific
+| Format | Description | Best For |
+|--------|-------------|----------|
+| `remotion_demo_template` | Remotion video component for product demos | Product demo video generation |
+| `tailwind_animate` | Custom keyframes & Tailwind animation utilities | Tailwind projects, utility-first animation |
+| `react_native_reanimated` | React Native Reanimated 3 with gesture handlers | Mobile apps, native performance |
+| `lottie_rive_export` | Lottie keyframe data & Rive state machine definitions | Motion graphics, After Effects replacement |
+| `interaction_state_machine` | XState/useReducer state machine from observed UI | Complex interactions, multi-state components |
+
+### Audit Group — Quality & Compliance
+| Format | Description | Best For |
+|--------|-------------|----------|
+| `qa_clone_checklist` | Acceptance criteria for clone verification | Client approvals, pixel/motion perfection |
+| `accessibility_audit` | WCAG compliance & prefers-reduced-motion fallbacks | Inclusive design, WCAG certification |
+| `performance_budget` | Layout thrash detection & GPU layer analysis | Performance audits, 60fps optimization |
+| `storyboard_breakdown` | Frame-by-frame annotated storyboard | Design handoff, animation documentation |
+
+---
+
+## Authentication & Credits
 
 ### Firebase Auth Integration
 
@@ -67,273 +280,27 @@ Supports two authentication methods:
 
 ```
 User Auth Flow:
-  ↓
   Firebase Client SDK (signInWithEmail/signInWithGoogle)
-  ↓
-  onAuthStateChanged → Set session cookie (__session)
-  ↓
-  Fetch/create user profile in Firestore
-  ↓
-  AuthContext provides { user, profile, isLoading }
+  → onAuthStateChanged → Set session cookie (__session)
+  → Fetch/create user profile in Firestore
+  → AuthContext provides { user, profile, isLoading }
+  → API calls include Authorization: Bearer {idToken}
 ```
 
-### Route Protection
+### Credit System
 
-**File:** `src/middleware.ts`
-
-- Protected routes: `/dashboard/*` (require authentication)
-- Unauthenticated users redirected to landing page
-- Session verified via `__session` cookie
-
----
-
-## Credits System
-
-### Credit Costs per Quality Level
-
-| Quality | Model | Credits | Access |
-|---------|-------|---------|--------|
-| fast | gemini-2.5-flash | 1 | All users |
-| balanced | gemini-3-flash-preview | 3 | All users |
-| precise | gemini-3-pro-preview | 20 | Paid users only |
-| kimi | kimi-k2.5 (Moonshot) | 5 | All users |
-
-### Credit Packs (Lemon Squeezy)
+| Quality | Standard Mode | Agentic Mode | Access |
+|---------|--------------|--------------|--------|
+| balanced | 3 credits | 5 credits | All users |
+| precise | 20 credits | 30 credits | Paid users only |
 
 | Pack | Credits | Price |
 |------|---------|-------|
+| Signup bonus | 20 | Free |
 | Creator | 200 | $24.00 |
 | Pro | 600 | $59.00 |
 
-### Credit Flow
-
-**Files:** `src/lib/actions/credits.ts`, `src/hooks/use-credits.ts`
-
-```
-New User Signup → 20 free credits
-  ↓
-User analyzes video → Check credits balance
-  ↓
-If sufficient → Deduct credits → Save analysis → Record transaction
-  ↓
-Low credits → Purchase pack via /api/checkout
-  ↓
-Lemon Squeezy webhook → Add credits to profile
-```
-
----
-
-## Extraction Logic (Core Pipeline)
-
-### 1. Video Ingestion
-
-**Files:** `src/hooks/use-analysis.ts` → `src/app/api/upload/route.ts`, `src/app/api/upload-url/route.ts`
-
-Users upload MP4, WebM, or MOV videos (max 100MB). File size and quality level determine the upload strategy:
-
-```
-Video File → Check Size (4MB threshold — Vercel body limit)
-  ↓
-  IF ≤ 4MB: Convert to base64 → Include inline in request
-  ↓
-  IF > 4MB AND Gemini quality (fast/balanced/precise):
-    Upload to /api/upload → Gemini Files API → Get fileUri
-  ↓
-  IF > 4MB AND Kimi quality:
-    POST /api/upload-url → Get R2 presigned URL
-    Client uploads directly to R2 → Pass objectKey to /api/analyze
-    Server fetches from R2 → Converts to base64 → Deletes R2 object after
-  ↓
-  All paths → /api/analyze with video data + metadata
-```
-
-**Video Metadata Extracted:**
-- Duration (seconds)
-- Resolution (width × height in px)
-- File size (bytes)
-- MIME type
-- File name
-
-### 2. AI Analysis Engine
-
-**Files:** `src/lib/ai/gemini.ts`, `src/lib/ai/kimi.ts`
-
-Two AI providers are supported, routed by quality level:
-
-**Gemini (Google)** — `src/lib/ai/gemini.ts`
-
-| Function | Streaming | Method |
-|----------|-----------|--------|
-| `analyzeVideoWithGemini()` | No | Base64 |
-| `analyzeVideoWithGeminiStream()` | Yes | Base64 |
-| `analyzeVideoWithGeminiFile()` | No | Files API |
-| `analyzeVideoWithGeminiFileStream()` | Yes | Files API (primary) |
-
-**Kimi K2.5 (Moonshot)** — `src/lib/ai/kimi.ts`
-
-| Function | Streaming | Method |
-|----------|-----------|--------|
-| `analyzeVideoWithKimi()` | No | Inline base64 |
-| `analyzeVideoWithKimiStream()` | Yes | Inline base64 (primary) |
-
-Kimi uses the OpenAI SDK with Moonshot's base URL. It only supports inline base64 video input (no Files API), so large files are routed through Cloudflare R2 on the server side.
-
-**Model Selection by Quality Level:**
-
-| Quality | Provider | Model | Max Tokens | Temperature | Thinking |
-|---------|----------|-------|------------|-------------|----------|
-| fast | Gemini | gemini-2.5-flash | 3,072 | 0.4 | — |
-| balanced | Gemini | gemini-3-flash-preview | 8,192 | 0.2 | high |
-| precise | Gemini | gemini-3-pro-preview | 16,384 | 0.1 | high |
-| kimi | Moonshot | kimi-k2.5 | 8,192 | 1.0 | thinking mode (temp must be 1.0) |
-
-**What Gets Extracted:**
-1. **Animation Elements** — What's being animated (buttons, modals, cards, etc.)
-2. **Motion Types** — Translation, rotation, scale, opacity, color changes, effects
-3. **Timing Information** — Duration, delays, stagger patterns, easing curves
-4. **Sequence Structure** — Sequential vs. parallel, phases, looping behavior
-5. **Trigger Context** — How animation is triggered (hover, click, scroll, load, focus, loop)
-
-### 3. Prompt Engineering
-
-**File:** `src/lib/ai/prompts.ts`
-
-The system prompt is constructed from multiple components:
-
-```
-System Prompt:
-  ├── BASE_SYSTEM_PROMPT (analysis process & motion detection)
-  ├── TRIGGER_INFERENCE_PROMPT (or user-provided trigger)
-  ├── VIDEO_METADATA (formatted duration, resolution, file size)
-  ├── ACCURACY_PROTOCOL_PROMPT (coordinate system, unit standards)
-  └── FORMAT_PROMPTS[selectedFormat] (output format instructions)
-
-User Prompt:
-  "Analyze the animation in this video. Provide a complete, implementable animation specification."
-```
-
-**Output Format Options:**
-
-| Format | Description |
-|--------|-------------|
-| `natural` | Structured text for AI coding agents (default) |
-| `css` | Pure CSS @keyframes syntax |
-| `gsap` | GreenSock timeline syntax |
-| `framer` | React JSX with Framer Motion variants |
-| `remotion` | React components for Remotion video framework |
-
-### 4. Streaming Response
-
-**File:** `src/app/api/analyze/route.ts`
-
-Responses are streamed using Server-Sent Events (SSE):
-
-```
-Client → POST /api/analyze (with auth cookie)
-  ↓
-Server → Verify auth → Check credits
-  ↓
-Server → If R2 objectKey provided: Fetch video from R2 → Convert to base64 → Schedule R2 deletion
-  ↓
-Server → Route to AI provider based on quality level:
-         - fast/balanced/precise → Gemini (inline or Files API)
-         - kimi → Kimi K2.5 (inline base64)
-  ↓
-Server → Opens SSE stream
-  ↓
-Server → Yields chunks: { type: 'progress' | 'chunk' | 'complete' | 'error', data?: string }
-  ↓
-Client → Updates UI with each chunk in real-time
-  ↓
-Server → Deducts credits → Saves analysis to Firestore
-```
-
-### 5. Output Parsing
-
-**File:** `src/lib/ai/output-parsers.ts`
-
-**Functions:**
-- `parseAnalysisOutput()` — Extracts overview, code, and notes from AI response
-- `extractOverview()` — Finds "Animation Overview" section
-- `extractCodeAndNotes()` — Extracts code blocks and additional notes from markdown
-- `getLanguageForFormat()` — Maps format to syntax highlighting language
-- `getFileExtensionForFormat()` — For download functionality
-
-**Returns:**
-```typescript
-{
-  overview: string;      // Brief description
-  code: string;          // Formatted code/instructions
-  notes?: string;        // Additional implementation notes
-  format: OutputFormat;  // Selected output type
-  rawAnalysis?: string;  // Full AI response for inspection
-  frameImage?: string;   // Base64 frame from video
-}
-```
-
-### 6. Frame Extraction (Optional)
-
-**Files:** `src/lib/video/extract-frame.ts`, `src/lib/ffmpeg/`
-
-Two approaches are available:
-
-| Approach | Method | Use Case |
-|----------|--------|----------|
-| Fast Frame | HTML5 Video + Canvas API | Preview frame at 30% of video duration |
-| Full Grid | FFmpeg.wasm | N frames at configurable FPS (not used in main flow) |
-
----
-
-## Data Flow Diagram
-
-```
-1. USER AUTHENTICATES
-   ↓
-   Landing page → Sign in (email/Google) → Dashboard redirect
-   ↓
-   AuthProvider fetches/creates profile → Credits balance loaded
-
-2. USER UPLOADS VIDEO
-   ↓
-   UploadZone.onDrop() → useVideoUpload.setFile()
-   ↓
-   Extract metadata from <video> element → VideoPreview displays
-
-3. USER CONFIGURES OPTIONS
-   ↓
-   - Output format (natural/css/gsap/framer/remotion)
-   - Quality level (fast/balanced/precise)
-   - Trigger context (hover/click/scroll/load/loop/focus)
-
-4. USER CLICKS "ANALYZE"
-   ↓
-   useAnalysis.analyze(file, metadata, config)
-   ↓
-   Size check (4MB threshold):
-     ≤ 4MB → inline base64
-     > 4MB + Gemini → Gemini Files API (/api/upload)
-     > 4MB + Kimi → R2 presigned URL (/api/upload-url) → Direct upload to R2
-   ↓
-   POST to /api/analyze with __session cookie
-
-5. SERVER PROCESSES
-   ↓
-   Verify auth → Check credits
-   ↓
-   If R2 objectKey → Fetch from R2 → Convert to base64 → Schedule cleanup
-   ↓
-   Route by quality: Gemini (fast/balanced/precise) OR Kimi K2.5 (kimi)
-   ↓
-   Build system prompt → Call AI API → Stream response
-   ↓
-   Deduct credits → Save analysis to Firestore → Record credit transaction
-
-6. CLIENT DISPLAYS
-   ↓
-   Accumulate chunks → parseAnalysisOutput() → Display in tabs
-   ↓
-   Analysis saved to history → User credits refreshed
-```
+Credits are deducted atomically via Firestore transactions after successful analysis. All transactions are logged in the `credit_transactions` collection.
 
 ---
 
@@ -344,7 +311,7 @@ Two approaches are available:
 | Collection | Purpose |
 |------------|---------|
 | `profiles` | User profiles with credits balance |
-| `analyses` | Saved analysis results |
+| `analyses` | Saved analysis results (max 50 per user) |
 | `credit_transactions` | Credit usage/purchase history |
 | `purchases` | Payment records |
 
@@ -385,7 +352,7 @@ interface Analysis {
 interface CreditTransaction {
   id: string;
   userId: string;
-  amount: number;                // Positive for additions, negative for deductions
+  amount: number;               // Positive for additions, negative for deductions
   type: 'signup_bonus' | 'analysis' | 'purchase' | 'refund' | 'admin_adjustment';
   quality: QualityLevel | null;
   description: string;
@@ -410,62 +377,142 @@ interface Purchase {
 
 ---
 
+## Client-Side Video Processing
+
+### FFmpeg WASM Frame Extraction
+
+Videos are processed client-side using FFmpeg compiled to WebAssembly:
+
+```
+Video File → FFmpeg WASM → Extract Frames (every 150ms, max 24)
+                                    │
+                                    ▼
+                          Create Frame Grid (4 columns, 320px wide)
+                                    │
+                                    ▼
+                          Send as frameGridBase64 with analysis request
+```
+
+This provides the AI model with keyframe reference images for more accurate motion analysis. Frame extraction requires `SharedArrayBuffer` support (COOP/COEP headers).
+
+### File Size Routing
+
+| Size Range | Gemini Path |
+|-----------|-------------|
+| 0-4MB | Inline base64 |
+| 4-20MB | Gemini Files API |
+| 20-100MB | Gemini Files API |
+| >100MB | Rejected |
+
+---
+
 ## Component Architecture
 
-### App Structure (Route Groups)
+### Project Structure
 
 ```
-src/app/
-├── (landing)/           # Public pages (landing, pricing)
-│   ├── layout.tsx       # Header + Footer + BackgroundEffects
-│   └── page.tsx         # HeroSection, DemoSection, HowItWorks, Pricing
+src/
+├── app/                          # Next.js App Router
+│   ├── layout.tsx                # Root layout (AuthProvider wrapper)
+│   ├── page.tsx                  # Landing page
+│   │
+│   ├── (dashboard)/              # Authenticated route group
+│   │   ├── layout.tsx            # Dashboard layout
+│   │   ├── dashboard/page.tsx    # Main analysis workspace
+│   │   ├── history/page.tsx      # Analysis history
+│   │   ├── account/page.tsx      # User profile & settings
+│   │   └── settings/page.tsx     # App settings
+│   │
+│   └── api/
+│       ├── analyze/route.ts      # Main analysis endpoint (SSE streaming)
+│       ├── upload/route.ts       # Gemini Files API upload
+│       ├── upload-url/route.ts   # R2 presigned URLs
+│       ├── analyses/route.ts     # Analysis history CRUD
+│       ├── checkout/route.ts     # Payment checkout
+│       ├── transactions/route.ts # Credit transactions
+│       └── webhooks/
+│           └── lemon-squeezy/    # Payment webhook
 │
-├── (dashboard)/         # Authenticated pages
-│   ├── layout.tsx       # Sidebar + auth check + redirect
-│   └── dashboard/
-│       ├── page.tsx     # Main analysis interface
-│       ├── history/     # Past analyses
-│       ├── account/     # Credits, transactions, buy packs
-│       └── settings/    # User settings
+├── components/
+│   ├── upload/                   # UploadZone, VideoPreview
+│   ├── config/                   # FormatSelector, QualitySelector, TriggerContext, AgenticToggle
+│   ├── output/                   # OutputPanel, CodeOutput, FramePreview
+│   ├── analysis/                 # AnalysisProgress, StreamingOutput
+│   ├── layout/                   # Header, Footer, BackgroundEffects
+│   ├── landing/                  # HeroSection, HowItWorks, UseCases, Pricing
+│   └── ui/                       # Button, Badge, CodeBlock, Select, Tabs
 │
-├── api/
-│   ├── analyze/         # Video analysis endpoint (Gemini + Kimi routing)
-│   ├── upload/          # Gemini Files API upload (large Gemini files)
-│   ├── upload-url/      # R2 presigned URL generation (large Kimi files)
-│   ├── analyses/        # Get user's analyses
-│   ├── checkout/        # Create Lemon Squeezy checkout
-│   ├── transactions/    # Get credit transactions
-│   └── webhooks/
-│       └── lemon-squeezy/  # Payment webhook handler
+├── hooks/
+│   ├── use-analysis.ts           # Analysis orchestration & SSE streaming
+│   ├── use-video-upload.ts       # Video file handling & metadata
+│   ├── use-ffmpeg.ts             # FFmpeg WASM loading & frame extraction
+│   └── use-auth.ts               # Authentication state
 │
-└── layout.tsx           # Root layout with AuthProvider
+├── lib/
+│   ├── ai/
+│   │   ├── gemini.ts             # Gemini model integration (4 functions)
+│   │   ├── agentic-pipeline.ts   # 4-pass agentic analysis pipeline
+│   │   ├── agentic-prompts.ts    # Pass-specific prompts
+│   │   ├── prompts.ts            # System prompt construction & format templates
+│   │   └── output-parsers.ts     # Extract overview/code from AI response
+│   │
+│   ├── firebase/
+│   │   ├── client.ts             # Firebase client SDK
+│   │   └── admin.ts              # Firebase Admin SDK (server-side)
+│   │
+│   ├── storage/
+│   │   └── r2.ts                 # Cloudflare R2 operations
+│   │
+│   ├── ffmpeg/
+│   │   └── extract-frames.ts     # Client-side keyframe extraction
+│   │
+│   └── actions/
+│       ├── analyses.ts           # Server actions for analysis CRUD
+│       └── credits.ts            # Credit check, deduct, balance
+│
+├── types/
+│   ├── analysis.ts               # OutputFormat, QualityLevel, AnalysisResult, etc.
+│   ├── output-formats.ts         # Format/Quality/Trigger option configs
+│   └── database.ts               # Firestore schema, credit costs, collections
+│
+├── contexts/
+│   └── auth-context.tsx          # Global auth context (Firebase Auth)
+│
+└── styles/
+    └── globals.css               # Global styles & Tailwind config
 ```
 
-### Component Structure
+### Dashboard Workspace Layout
 
 ```
-src/components/
-├── analysis/        # AnalysisProgress, StreamingOutput
-├── auth/            # AuthButton, SignInModal
-├── config/          # FormatSelector, QualitySelector, TriggerContext, OptionsPanel
-├── dashboard/       # DashboardHeader, Sidebar, HistoryItem, PricingModal
-├── landing/         # HeroSection, DemoSection, HowItWorks, PricingSection
-├── layout/          # Header, Footer, BackgroundEffects
-├── output/          # OutputPanel, CodeOutput, FramePreview
-├── ui/              # Button, Badge, CodeBlock, Select, Tabs, Spinner, Icons
-└── upload/          # UploadZone, VideoPreview, UploadProgress
+Dashboard Page
+├── Left Panel (Configuration)
+│   ├── UploadZone (drag & drop, file selection)
+│   ├── VideoPreview (playback, metadata display)
+│   ├── FormatSelector (15 format options in groups)
+│   ├── QualitySelector (balanced / precise)
+│   ├── TriggerContext (hover/click/scroll/load/loop/focus)
+│   ├── AgenticToggle (enable 4-pass pipeline)
+│   └── Analyze Button (with credit cost display)
+│
+└── Right Panel (Results)
+    └── OutputPanel
+        ├── Code Tab (syntax-highlighted with Shiki)
+        ├── Overview Tab (animation summary)
+        ├── Frame Preview Tab (extracted keyframe)
+        └── Verification Tab (agentic mode only, score + discrepancies)
 ```
 
 ### State Management
 
-| Hook | File | Purpose |
-|------|------|---------|
-| `useAuth` | `src/contexts/auth-context.tsx` | Auth state, user profile, sign in/out |
-| `useAnalysis` | `src/hooks/use-analysis.ts` | Analysis lifecycle, streaming, progress |
-| `useVideoUpload` | `src/hooks/use-video-upload.ts` | Video file selection and metadata extraction |
-| `useCredits` | `src/hooks/use-credits.ts` | Credits balance, quality access check |
-| `useFFmpeg` | `src/hooks/use-ffmpeg.ts` | Lazy-loads FFmpeg WASM for frame extraction |
-| `useCopyToClipboard` | `src/hooks/use-copy-to-clipboard.ts` | Copy-to-clipboard utility |
+All state is managed through custom React hooks:
+
+| Hook | Purpose |
+|------|---------|
+| `useVideoUpload` | Video file selection, metadata extraction, upload progress |
+| `useAnalysis` | Analysis lifecycle, SSE streaming, progress tracking, results map |
+| `useAuth` | Firebase Auth state, user profile, sign in/out |
+| `useFFmpeg` | Lazy-load FFmpeg WASM, frame extraction |
 
 ---
 
@@ -474,70 +521,56 @@ src/components/
 **File:** `src/types/analysis.ts`
 
 ```typescript
-type OutputFormat = 'natural' | 'css' | 'gsap' | 'framer' | 'remotion'
-type QualityLevel = 'fast' | 'balanced' | 'precise' | 'kimi'
-type TriggerContext = 'hover' | 'click' | 'scroll' | 'load' | 'loop' | 'focus' | null
+type OutputFormat =
+  | 'clone_ui_animation' | 'clone_component' | 'clone_landing_page'
+  | 'copy_design_style' | 'extract_design_tokens'
+  | 'remotion_demo_template' | 'qa_clone_checklist' | 'accessibility_audit'
+  | 'interaction_state_machine' | 'performance_budget'
+  | 'lottie_rive_export' | 'storyboard_breakdown'
+  | 'tailwind_animate' | 'react_native_reanimated' | 'figma_motion_spec';
 
-interface AnalysisConfig {
-  format: OutputFormat
-  quality: QualityLevel
-  triggerContext: TriggerContext
-}
+type QualityLevel = 'balanced' | 'precise' | 'kimi';
+
+type TriggerContext = 'hover' | 'click' | 'scroll' | 'load' | 'loop' | 'focus' | null;
 
 interface AnalysisResult {
-  overview: string
-  code: string
-  notes?: string
-  format: OutputFormat
-  rawAnalysis?: string
-  frameImage?: string
+  overview: string;
+  code: string;
+  format: OutputFormat;
+  notes?: string;
+  rawAnalysis?: string;
+  frameImage?: string;
+  verificationScore?: number;       // Agentic mode only (0-100)
+  verificationReport?: VerificationReport;
+  thinkingLog?: string;            // Gemini thinking traces
+}
+
+interface VerificationReport {
+  overallScore: number;
+  discrepancies: Discrepancy[];
+  corrections: string[];
+  summary?: string;
 }
 
 interface AnalysisProgress {
   step: 'uploading' | 'extracting' | 'analyzing' | 'generating' | 'complete' | 'error'
-  message: string
-  progress?: number
+    | 'pass_1_decomposing' | 'pass_2_analyzing' | 'pass_3_generating' | 'pass_4_verifying';
+  message: string;
+  progress?: number;
+  currentPass?: number;
+  totalPasses?: number;
+  passName?: string;
 }
 
 interface VideoMetadata {
-  duration: number
-  width: number
-  height: number
-  size: number
-  mimeType: string
-  name: string
+  duration: number;
+  width: number;
+  height: number;
+  size: number;
+  mimeType: string;
+  name: string;
 }
 ```
-
----
-
-## Key Files Reference
-
-| Path | Purpose |
-|------|---------|
-| `src/app/layout.tsx` | Root layout with AuthProvider |
-| `src/app/(landing)/page.tsx` | Landing page layout |
-| `src/app/(dashboard)/dashboard/page.tsx` | Main analysis interface |
-| `src/app/api/analyze/route.ts` | Main analysis endpoint (streaming) |
-| `src/app/api/upload/route.ts` | Gemini Files API upload handler |
-| `src/app/api/upload-url/route.ts` | R2 presigned URL generation for Kimi uploads |
-| `src/app/api/checkout/route.ts` | Lemon Squeezy checkout creation |
-| `src/app/api/webhooks/lemon-squeezy/route.ts` | Payment webhook handler |
-| `src/lib/ai/gemini.ts` | Gemini model integration |
-| `src/lib/ai/kimi.ts` | Kimi K2.5 model integration (Moonshot API) |
-| `src/lib/ai/prompts.ts` | System prompt construction |
-| `src/lib/ai/output-parsers.ts` | Result parsing & formatting |
-| `src/lib/storage/r2.ts` | Cloudflare R2 storage operations (presigned URLs, fetch, delete) |
-| `src/lib/firebase/admin.ts` | Firebase Admin SDK (server-side) |
-| `src/lib/firebase/client.ts` | Firebase Client SDK (browser) |
-| `src/lib/actions/credits.ts` | Credit management functions |
-| `src/lib/actions/analyses.ts` | Analysis CRUD operations |
-| `src/contexts/auth-context.tsx` | Authentication context provider |
-| `src/hooks/use-analysis.ts` | Analysis orchestration hook |
-| `src/hooks/use-credits.ts` | Credits state hook |
-| `src/middleware.ts` | Route protection middleware |
-| `src/types/analysis.ts` | Core TypeScript types |
-| `src/types/database.ts` | Firestore document types |
 
 ---
 
@@ -546,43 +579,42 @@ interface VideoMetadata {
 ### Environment Variables
 
 ```bash
-# Required - Gemini API
+# Required — Gemini API
 GEMINI_API_KEY=your-gemini-api-key
 
-# Required - Firebase
-NEXT_PUBLIC_FIREBASE_API_KEY=your-firebase-api-key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
-NEXT_PUBLIC_FIREBASE_APP_ID=1:123456789:web:abc123
+# Required — Firebase (Client)
+NEXT_PUBLIC_FIREBASE_API_KEY=...
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+NEXT_PUBLIC_FIREBASE_APP_ID=...
 
-# Required - Firebase Admin (server-side)
-FIREBASE_ADMIN_PROJECT_ID=your-project-id
-FIREBASE_ADMIN_CLIENT_EMAIL=firebase-adminsdk@your-project.iam.gserviceaccount.com
-FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+# Required — Firebase Admin (Server-side)
+FIREBASE_SERVICE_ACCOUNT_KEY=...  # JSON string
 
-# Required - Kimi K2.5 (Moonshot AI)
-MOONSHOT_API_KEY=your-moonshot-api-key
-
-# Required - Lemon Squeezy (payments)
-LEMON_SQUEEZY_API_KEY=your-lemon-squeezy-api-key
-LEMON_SQUEEZY_STORE_ID=your-store-id
-LEMON_SQUEEZY_CREATOR_VARIANT_ID=creator-pack-variant-id
-LEMON_SQUEEZY_PRO_VARIANT_ID=pro-pack-variant-id
-LEMON_SQUEEZY_TEST_MODE=true
-LEMON_SQUEEZY_WEBHOOK_SECRET=your-webhook-secret
-NEXT_PUBLIC_COOKIE_DOMAIN=.animspec.com
-
-# Required - Cloudflare R2 (temporary video storage for large files)
-CLOUDFLARE_R2_ACCOUNT_ID=your-r2-account-id
-CLOUDFLARE_R2_ACCESS_KEY_ID=your-r2-access-key-id
-CLOUDFLARE_R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
+# Required — Cloudflare R2
+CLOUDFLARE_R2_ACCOUNT_ID=...
+CLOUDFLARE_R2_ACCESS_KEY_ID=...
+CLOUDFLARE_R2_SECRET_ACCESS_KEY=...
 CLOUDFLARE_R2_BUCKET_NAME=animspec-videos
 
+# Required — Lemon Squeezy (Payments)
+LEMON_SQUEEZY_API_KEY=...
+
 # Optional
-NEXT_PUBLIC_APP_URL=https://animspec.ai
+NEXT_PUBLIC_DISABLE_KEYFRAMES=false
+NEXT_PUBLIC_COOKIE_DOMAIN=yourdomain.com
 ```
+
+### Next.js Configuration
+
+- **Runtime:** Node.js (required for Firebase Admin SDK)
+- **Timeout:** 300 seconds for analysis routes
+- **Package optimization:** Firebase, Shiki, @google/genai tree-shaken via `optimizePackageImports`
+- **Security headers:** COOP/COEP for FFmpeg WASM SharedArrayBuffer
+- **CSP:** `wasm-unsafe-eval` for FFmpeg WASM execution
+- **Image domains:** Google Cloud Storage, Google auth avatars
 
 ### Constraints
 
@@ -590,48 +622,60 @@ NEXT_PUBLIC_APP_URL=https://animspec.ai
 |------------|-------|
 | File Size Limit | 100MB |
 | Accepted Formats | MP4, WebM, MOV |
-| Streaming Timeout | 300 seconds (Vercel Pro/Enterprise) |
+| Streaming Timeout | 300 seconds |
 | Vercel Body Limit | ~4.5MB (triggers external upload) |
-| Gemini Files API Threshold | > 4MB (uses Gemini Files API) |
-| R2 Upload Threshold | > 4MB for Kimi quality (uses R2 → server fetch) |
-| R2 Presigned URL Expiry | 1 hour |
+| Gemini Files API Threshold | > 4MB |
 | Default Free Credits | 20 |
 | Max Analyses per User | 50 |
 
 ---
 
-## Example Extraction Flow
+## Security
 
-**Input:** 5-second button hover animation video (3.2 MB)
+- **Auth:** Firebase Auth with server-side ID token verification on every API call
+- **Authorization:** Credit balance checks before analysis; precise mode restricted to paid users
+- **API protection:** File size validation (100MB max), MIME type validation (video only), rate limiting
+- **Data isolation:** Analysis records scoped to `userId`; Firestore security rules restrict collection access
+- **Headers:** COOP/COEP for WASM, CSP for script execution, secure cookie flags
+- **Secrets:** All API keys server-side only; environment variables not exposed to client
 
-```
-1. Auth: User logged in with 15 credits
-2. Upload: 3.2 MB ≤ 4 MB → inline base64 path
-3. Metadata: duration=5.0, resolution=1920x1080, mimeType=video/mp4
-4. Config: format=natural, quality=balanced, triggerContext=hover
-5. Credits: balanced costs 3 → User has 15 → Proceed
-6. Prompt: Base + trigger + metadata + accuracy + format instructions
-7. Model: gemini-3-flash-preview (8192 tokens, temp 0.2, thinking: high)
-8. Analysis: Detects button, color change, scale, 0.3s duration, ease-out
-9. Deduct: 15 - 3 = 12 credits remaining
-10. Save: Analysis stored in Firestore with frame image
-11. Output: Structured natural language specification
-```
+---
 
-**Sample Output:**
-```
-**Animation Overview:**
-A button smoothly transitions to a darker blue on hover, with a subtle
-scale increase creating a tactile feedback effect.
+## Deployment
 
-**Elements:**
-1. Button
-   - Initial: backgroundColor #3b82f6, scale 1
-   - Final: backgroundColor #1d4ed8, scale 1.05
+| Component | Service |
+|-----------|---------|
+| Application | Vercel (Next.js serverless) |
+| Database | Firebase Firestore |
+| Authentication | Firebase Auth |
+| File Storage | Firebase Storage + Cloudflare R2 |
+| Video Analysis | Google Gemini 3 API |
+| Payments | Lemon Squeezy |
+| Domain/CDN | Vercel Edge Network |
 
-**Timing:**
-- Duration: 0.3s
-- Easing: ease-out
+The entire stack is serverless with auto-scaling. No infrastructure to manage.
 
-**Trigger:** hover
-```
+---
+
+## Dependencies
+
+### Production
+| Package | Purpose |
+|---------|---------|
+| `@google/genai` ^1.0.0 | Gemini 3 API SDK |
+| `@ffmpeg/ffmpeg` ^0.12.10 | Client-side video frame extraction |
+| `firebase` ^12.8.0 | Client-side Firebase (Auth, Firestore, Storage) |
+| `firebase-admin` ^13.6.0 | Server-side Firebase Admin |
+| `next` ^15.1.0 | Next.js framework |
+| `react` ^19.0.0 | React UI framework |
+| `openai` ^6.16.0 | Kimi API client (OpenAI-compatible) |
+| `react-dropzone` ^14.3.5 | File upload drag & drop |
+| `shiki` ^1.24.0 | Code syntax highlighting |
+| `aws4fetch` ^1.0.20 | Cloudflare R2 presigned URLs |
+
+### Development
+| Package | Purpose |
+|---------|---------|
+| `tailwindcss` ^4.0.0 | Utility-first CSS |
+| `typescript` ^5.7.0 | Type safety |
+| `eslint` ^9.17.0 | Linting |
