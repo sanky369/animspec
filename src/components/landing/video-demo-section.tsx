@@ -13,7 +13,7 @@ export function VideoDemoSection() {
           <span className="section-eyebrow">See Demo</span>
           <h2 className="section-title">Watch It In Action</h2>
           <p className="section-subtitle">
-            See how AnimSpec analyzes animations and generates structured specifications
+            See how AnimSpec turns screen recordings into prompts your coding agent can build from
           </p>
         </div>
 

@@ -6,26 +6,26 @@ const steps = [
   {
     number: 1,
     icon: UploadIcon,
-    title: 'Upload Any Animation',
-    description: 'Drop a screen recording, prototype demo, or any video with UI animations',
+    title: 'Record Any Screen',
+    description: 'Screen record any UI you want to recreate — websites, apps, animations, landing pages',
   },
   {
     number: 2,
     icon: SearchIcon,
-    title: 'Choose Output Format',
-    description: 'Pick from 15 formats — clone code, design tokens, Tailwind config, accessibility audit, and more',
+    title: 'Choose Your Format',
+    description: 'Pick from 15 prompt formats — React components, Tailwind config, design tokens, and more',
   },
   {
     number: 3,
     icon: ClipboardIcon,
-    title: 'AI Analyzes Motion',
-    description: 'Gemini vision models extract every detail: timing, easing, colors, layout, and spatial relationships',
+    title: 'Gemini 3 Analyzes',
+    description: 'Gemini 3 thinking mode extracts every detail: timing, easing, layout, and spatial relationships',
   },
   {
     number: 4,
     icon: RocketIcon,
-    title: 'Use Anywhere',
-    description: 'Copy specs to Claude Code, Cursor, Figma, or integrate directly into your codebase',
+    title: 'Paste Into Your Agent',
+    description: 'Copy the prompt into Claude Code, Cursor, Copilot, or any AI coding agent and watch it build',
   },
 ];
 
@@ -36,7 +36,7 @@ export function HowItWorks() {
         <span className="section-eyebrow">Workflow</span>
         <h2 className="section-title">How It Works</h2>
         <p className="section-subtitle">
-          From video to structured specifications in four steps
+          From video to agent-ready prompt in four steps
         </p>
       </div>
       <div className="steps-grid">

@@ -134,10 +134,10 @@ export function UseCasesSection() {
   return (
     <section className="use-cases-section" id="use-cases">
       <div className="section-header">
-        <span className="section-eyebrow">Use Cases</span>
-        <h2 className="section-title">15 Output Formats for Every Workflow</h2>
+        <span className="section-eyebrow">Prompt Formats</span>
+        <h2 className="section-title">15 Prompt Formats for Every Workflow</h2>
         <p className="section-subtitle">
-          From cloning animations to auditing accessibility — one video, any specification you need
+          One video, 15 ways to prompt your coding agent — clone, extract, export, or audit
         </p>
       </div>
 

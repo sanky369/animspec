@@ -97,7 +97,7 @@ export function DemoSection() {
         <span className="section-eyebrow">Try It</span>
         <h2 className="section-title">Try It Free</h2>
         <p className="section-subtitle">
-          Upload any animation video, pick a format, and get structured specs instantly
+          Upload any screen recording, pick a format, and get a prompt your coding agent can build from
           {!user && <span className="text-text-subtle"> — one free analysis per device</span>}
         </p>
       </div>
