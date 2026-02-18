@@ -114,7 +114,7 @@ Add to `.claude/mcp.json` (project-level) or `~/.claude/mcp.json` (global):
 
 ### Example Usage in Claude Code
 
-```
+```text
 "Analyze ./demo.mp4 as a clone_ui_animation using precise quality"
 "Use animspec to extract tailwind_animate config from ./hero-animation.webm"
 "List all animspec formats"
@@ -159,5 +159,6 @@ curl -X POST https://animspec.ai/api/v1/analyze \
 
 - Max file size: 100MB
 - Files API threshold: 20MB
-- Streaming timeout: 60 seconds (maxDuration in route.ts)
+- Streaming timeout: 60 seconds (maxDuration in /api/analyze)
+- REST API timeout: 300 seconds (maxDuration in /api/v1/analyze)
 - Accepted formats: MP4, WebM, MOV

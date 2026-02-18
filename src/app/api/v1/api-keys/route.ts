@@ -101,7 +101,7 @@ export async function DELETE(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const keyId = (body as Record<string, unknown>).id as string;
 
     if (!keyId) {

@@ -73,43 +73,41 @@ async function authenticateRequest(
 }
 
 /**
- * Check that the user has enough credits for the requested quality.
+ * Lightweight pre-check for credits (non-transactional).
+ * Used to fail fast before expensive work; the real deduction is atomic.
  */
 async function checkCredits(
   userId: string,
   quality: QualityLevel
 ): Promise<{ balance: number; cost: number; canProceed: boolean }> {
+  const cost = CREDIT_COSTS[quality];
   const profileRef = adminDb.collection(COLLECTIONS.PROFILES).doc(userId);
   const profileSnap = await profileRef.get();
 
   if (!profileSnap.exists) {
-    return { balance: 0, cost: 0, canProceed: false };
+    return { balance: 0, cost, canProceed: false };
   }
 
   const profile = profileSnap.data();
-  const cost = CREDIT_COSTS[quality];
   const balance = profile?.creditsBalance ?? 0;
 
   return { balance, cost, canProceed: balance >= cost };
 }
 
 /**
- * Deduct credits and record the transaction.
+ * Atomically reserve credits before running analysis.
+ * Returns the new balance after deduction.
+ * Throws if the user has insufficient credits.
  */
-async function deductCredits(
+async function reserveCredits(
   userId: string,
   quality: QualityLevel,
-  format: OutputFormat,
-  triggerContext: TriggerContext,
-  overview: string,
-  code: string,
-  videoName: string,
-  videoDuration: number
-): Promise<void> {
+  format: OutputFormat
+): Promise<{ newBalance: number; cost: number }> {
   const cost = CREDIT_COSTS[quality];
   const profileRef = adminDb.collection(COLLECTIONS.PROFILES).doc(userId);
 
-  await adminDb.runTransaction(async (transaction) => {
+  const newBalance = await adminDb.runTransaction(async (transaction) => {
     const profileDoc = await transaction.get(profileRef);
 
     if (!profileDoc.exists) {
@@ -117,32 +115,16 @@ async function deductCredits(
     }
 
     const profile = profileDoc.data();
-    if ((profile?.creditsBalance ?? 0) < cost) {
+    const balance = profile?.creditsBalance ?? 0;
+    if (balance < cost) {
       throw new Error('Insufficient credits');
     }
 
-    const newBalance = (profile?.creditsBalance ?? 0) - cost;
+    const updated = balance - cost;
 
     transaction.update(profileRef, {
-      creditsBalance: newBalance,
+      creditsBalance: updated,
       updatedAt: FieldValue.serverTimestamp(),
-    });
-
-    // Create analysis record
-    const analysisRef = adminDb.collection(COLLECTIONS.ANALYSES).doc();
-    transaction.set(analysisRef, {
-      userId,
-      format,
-      quality,
-      triggerContext,
-      overview,
-      code,
-      frameImageUrl: null,
-      videoName,
-      videoDuration,
-      creditsUsed: cost,
-      source: 'api', // mark as API-sourced
-      createdAt: FieldValue.serverTimestamp(),
     });
 
     // Create credit transaction record
@@ -153,7 +135,78 @@ async function deductCredits(
       type: 'analysis',
       quality,
       description: `API analysis (${quality} quality, ${format})`,
-      analysisId: analysisRef.id,
+      analysisId: null,
+      purchaseId: null,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
+    return updated;
+  });
+
+  return { newBalance, cost };
+}
+
+/**
+ * Record the analysis result after a successful Gemini call.
+ */
+async function recordAnalysis(
+  userId: string,
+  quality: QualityLevel,
+  format: OutputFormat,
+  triggerContext: TriggerContext,
+  overview: string,
+  code: string,
+  videoName: string,
+  videoDuration: number,
+  cost: number
+): Promise<void> {
+  await adminDb.collection(COLLECTIONS.ANALYSES).add({
+    userId,
+    format,
+    quality,
+    triggerContext,
+    overview,
+    code,
+    frameImageUrl: null,
+    videoName,
+    videoDuration,
+    creditsUsed: cost,
+    source: 'api',
+    createdAt: FieldValue.serverTimestamp(),
+  });
+}
+
+/**
+ * Refund reserved credits if the analysis fails after deduction.
+ */
+async function refundCredits(
+  userId: string,
+  quality: QualityLevel,
+  format: OutputFormat
+): Promise<void> {
+  const cost = CREDIT_COSTS[quality];
+  const profileRef = adminDb.collection(COLLECTIONS.PROFILES).doc(userId);
+
+  await adminDb.runTransaction(async (transaction) => {
+    const profileDoc = await transaction.get(profileRef);
+    if (!profileDoc.exists) return;
+
+    const profile = profileDoc.data();
+    const balance = profile?.creditsBalance ?? 0;
+
+    transaction.update(profileRef, {
+      creditsBalance: balance + cost,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    const txRef = adminDb.collection(COLLECTIONS.CREDIT_TRANSACTIONS).doc();
+    transaction.set(txRef, {
+      userId,
+      amount: cost,
+      type: 'refund',
+      quality,
+      description: `Refund: API analysis failed (${quality} quality, ${format})`,
+      analysisId: null,
       purchaseId: null,
       createdAt: FieldValue.serverTimestamp(),
     });
@@ -202,9 +255,15 @@ export async function POST(request: NextRequest) {
   if ('error' in authResult) return authResult.error;
   const { userId } = authResult;
 
+  // --- Parse body ---
+  let body: Record<string, unknown>;
   try {
-    const body = await request.json();
+    body = await request.json();
+  } catch {
+    return Response.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
 
+  try {
     const {
       videoBase64,
       mimeType,
@@ -214,28 +273,28 @@ export async function POST(request: NextRequest) {
       quality = 'balanced',
       trigger,
       metadata,
-    } = body;
+    } = body as Record<string, string | Record<string, unknown> | undefined>;
 
     // --- Validate inputs ---
     if (!format) {
       return Response.json({ error: 'Missing required field: format' }, { status: 400 });
     }
 
-    if (!VALID_FORMATS.includes(format)) {
+    if (!VALID_FORMATS.includes(format as OutputFormat)) {
       return Response.json(
         { error: `Invalid format: ${format}. Valid: ${VALID_FORMATS.join(', ')}` },
         { status: 400 }
       );
     }
 
-    if (!VALID_QUALITIES.includes(quality)) {
+    if (!VALID_QUALITIES.includes(quality as string)) {
       return Response.json(
         { error: `Invalid quality: ${quality}. Valid: ${VALID_QUALITIES.join(', ')}` },
         { status: 400 }
       );
     }
 
-    if (trigger && !VALID_TRIGGERS.includes(trigger)) {
+    if (trigger && !VALID_TRIGGERS.includes(trigger as string)) {
       return Response.json(
         { error: `Invalid trigger: ${trigger}. Valid: ${VALID_TRIGGERS.join(', ')}` },
         { status: 400 }
@@ -249,7 +308,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // --- Check credits ---
+    // --- Fast pre-check credits ---
     const creditCheck = await checkCredits(userId, quality as QualityLevel);
     if (!creditCheck.canProceed) {
       return Response.json(
@@ -263,52 +322,81 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // --- Run analysis ---
-    const triggerContext: TriggerContext = trigger || null;
+    // --- Reserve credits atomically (before analysis) ---
+    let reserved: { newBalance: number; cost: number };
+    try {
+      reserved = await reserveCredits(
+        userId,
+        quality as QualityLevel,
+        format as OutputFormat
+      );
+    } catch {
+      // Transaction failed — likely a race where another request consumed credits
+      return Response.json(
+        {
+          error: 'Insufficient credits.',
+          creditsRequired: CREDIT_COSTS[quality as QualityLevel],
+          creditsBalance: 0,
+          hint: 'Purchase more credits at https://animspec.ai/dashboard',
+        },
+        { status: 402 }
+      );
+    }
+
+    // --- Run analysis (refund if it fails) ---
+    const triggerContext: TriggerContext = (trigger as TriggerContext) || null;
     const geminiQuality = quality as GeminiQualityLevel;
 
     const videoMetadata: VideoMetadata | null = metadata
       ? {
-          duration: metadata.duration || 0,
-          width: metadata.width || 0,
-          height: metadata.height || 0,
-          size: metadata.size || 0,
-          mimeType: metadata.mimeType || mimeType || fileMimeType || '',
-          name: metadata.name || '',
+          duration: (metadata as Record<string, number | string>).duration as number || 0,
+          width: (metadata as Record<string, number | string>).width as number || 0,
+          height: (metadata as Record<string, number | string>).height as number || 0,
+          size: (metadata as Record<string, number | string>).size as number || 0,
+          mimeType: ((metadata as Record<string, string>).mimeType || mimeType || fileMimeType || '') as string,
+          name: ((metadata as Record<string, string>).name || '') as string,
         }
       : null;
 
     let rawOutput: string;
 
-    if (fileUri && fileMimeType) {
-      rawOutput = await analyzeVideoWithGeminiFile({
-        fileUri,
-        fileMimeType,
-        format: format as OutputFormat,
-        quality: geminiQuality,
-        triggerContext,
-        videoMetadata,
-      });
-    } else if (videoBase64 && mimeType) {
-      rawOutput = await analyzeVideoWithGemini({
-        videoBase64,
-        mimeType,
-        format: format as OutputFormat,
-        quality: geminiQuality,
-        triggerContext,
-        videoMetadata,
-      });
-    } else {
-      return Response.json(
-        { error: 'Invalid video data: provide videoBase64+mimeType or fileUri+fileMimeType' },
-        { status: 400 }
-      );
+    try {
+      if (fileUri && fileMimeType) {
+        rawOutput = await analyzeVideoWithGeminiFile({
+          fileUri: fileUri as string,
+          fileMimeType: fileMimeType as string,
+          format: format as OutputFormat,
+          quality: geminiQuality,
+          triggerContext,
+          videoMetadata,
+        });
+      } else if (videoBase64 && mimeType) {
+        rawOutput = await analyzeVideoWithGemini({
+          videoBase64: videoBase64 as string,
+          mimeType: mimeType as string,
+          format: format as OutputFormat,
+          quality: geminiQuality,
+          triggerContext,
+          videoMetadata,
+        });
+      } else {
+        // Refund and return error
+        await refundCredits(userId, quality as QualityLevel, format as OutputFormat);
+        return Response.json(
+          { error: 'Invalid video data: provide videoBase64+mimeType or fileUri+fileMimeType' },
+          { status: 400 }
+        );
+      }
+    } catch (analysisError) {
+      // Analysis failed — refund the reserved credits
+      await refundCredits(userId, quality as QualityLevel, format as OutputFormat).catch(() => {});
+      throw analysisError;
     }
 
     const result = parseAnalysisOutput(rawOutput, format as OutputFormat);
 
-    // --- Deduct credits ---
-    await deductCredits(
+    // --- Record analysis (credits already deducted) ---
+    await recordAnalysis(
       userId,
       quality as QualityLevel,
       format as OutputFormat,
@@ -316,19 +404,17 @@ export async function POST(request: NextRequest) {
       result.overview,
       result.code,
       videoMetadata?.name || 'api-upload',
-      videoMetadata?.duration || 0
+      videoMetadata?.duration || 0,
+      reserved.cost
     );
-
-    // Calculate remaining balance
-    const remaining = creditCheck.balance - creditCheck.cost;
 
     return Response.json({
       overview: result.overview,
       code: result.code,
       format: result.format,
       notes: result.notes || null,
-      creditsUsed: creditCheck.cost,
-      creditsRemaining: remaining,
+      creditsUsed: reserved.cost,
+      creditsRemaining: reserved.newBalance,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Analysis failed';

@@ -77,7 +77,9 @@ export async function validateApiKey(
   const data = doc.data();
 
   // Update lastUsedAt (non-blocking)
-  doc.ref.update({ lastUsedAt: FieldValue.serverTimestamp() }).catch(() => {});
+  doc.ref.update({ lastUsedAt: FieldValue.serverTimestamp() }).catch((err) => {
+    console.warn(`Failed to update lastUsedAt for API key ${doc.id}:`, err);
+  });
 
   return { userId: data.userId, keyId: doc.id };
 }

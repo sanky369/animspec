@@ -109,8 +109,8 @@ function getMimeType(filePath: string): string {
   return mime;
 }
 
-function readVideoAsBase64(filePath: string): string {
-  const buffer = fs.readFileSync(filePath);
+async function readVideoAsBase64(filePath: string): Promise<string> {
+  const buffer = await fs.promises.readFile(filePath);
   return buffer.toString('base64');
 }
 
@@ -172,6 +172,7 @@ async function callAnalyzeApi(
       'x-api-key': apiKey,
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(5 * 60 * 1000), // 5 minute timeout
   });
 
   const data = (await response.json()) as AnalyzeApiResponse;
@@ -272,7 +273,7 @@ Use list_formats to see all 15 available output formats.`,
 
       const mimeType = getMimeType(resolvedPath);
       const fileName = path.basename(resolvedPath);
-      const videoBase64 = readVideoAsBase64(resolvedPath);
+      const videoBase64 = await readVideoAsBase64(resolvedPath);
 
       const data = await callAnalyzeApi(
         videoBase64,
