@@ -5,7 +5,11 @@ import {
   type GeminiQualityLevel,
 } from '@/lib/ai/gemini';
 import { parseAnalysisOutput } from '@/lib/ai/output-parsers';
-import type { OutputFormat, TriggerContext, VideoMetadata } from '@/types/analysis';
+import { validateApiKey } from '@/lib/api-keys';
+import { adminDb } from '@/lib/firebase/admin';
+import { COLLECTIONS, CREDIT_COSTS } from '@/types/database';
+import { FieldValue } from 'firebase-admin/firestore';
+import type { OutputFormat, QualityLevel, TriggerContext, VideoMetadata } from '@/types/analysis';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -32,14 +36,139 @@ const VALID_QUALITIES = ['balanced', 'precise'];
 const VALID_TRIGGERS = ['hover', 'click', 'scroll', 'load', 'loop', 'focus'];
 
 /**
+ * Authenticate via AnimSpec API key (x-api-key header).
+ * Returns userId or an error response.
+ */
+async function authenticateRequest(
+  request: NextRequest
+): Promise<{ userId: string } | { error: Response }> {
+  const apiKey = request.headers.get('x-api-key');
+
+  if (!apiKey) {
+    return {
+      error: Response.json(
+        {
+          error: 'Missing API key. Pass your AnimSpec API key in the x-api-key header.',
+          hint: 'Generate an API key at https://animspec.ai/dashboard or via POST /api/v1/api-keys',
+        },
+        { status: 401 }
+      ),
+    };
+  }
+
+  const result = await validateApiKey(apiKey);
+  if (!result) {
+    return {
+      error: Response.json(
+        {
+          error: 'Invalid or revoked API key.',
+          hint: 'Check your key or generate a new one at https://animspec.ai/dashboard',
+        },
+        { status: 401 }
+      ),
+    };
+  }
+
+  return { userId: result.userId };
+}
+
+/**
+ * Check that the user has enough credits for the requested quality.
+ */
+async function checkCredits(
+  userId: string,
+  quality: QualityLevel
+): Promise<{ balance: number; cost: number; canProceed: boolean }> {
+  const profileRef = adminDb.collection(COLLECTIONS.PROFILES).doc(userId);
+  const profileSnap = await profileRef.get();
+
+  if (!profileSnap.exists) {
+    return { balance: 0, cost: 0, canProceed: false };
+  }
+
+  const profile = profileSnap.data();
+  const cost = CREDIT_COSTS[quality];
+  const balance = profile?.creditsBalance ?? 0;
+
+  return { balance, cost, canProceed: balance >= cost };
+}
+
+/**
+ * Deduct credits and record the transaction.
+ */
+async function deductCredits(
+  userId: string,
+  quality: QualityLevel,
+  format: OutputFormat,
+  triggerContext: TriggerContext,
+  overview: string,
+  code: string,
+  videoName: string,
+  videoDuration: number
+): Promise<void> {
+  const cost = CREDIT_COSTS[quality];
+  const profileRef = adminDb.collection(COLLECTIONS.PROFILES).doc(userId);
+
+  await adminDb.runTransaction(async (transaction) => {
+    const profileDoc = await transaction.get(profileRef);
+
+    if (!profileDoc.exists) {
+      throw new Error('User profile not found');
+    }
+
+    const profile = profileDoc.data();
+    if ((profile?.creditsBalance ?? 0) < cost) {
+      throw new Error('Insufficient credits');
+    }
+
+    const newBalance = (profile?.creditsBalance ?? 0) - cost;
+
+    transaction.update(profileRef, {
+      creditsBalance: newBalance,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    // Create analysis record
+    const analysisRef = adminDb.collection(COLLECTIONS.ANALYSES).doc();
+    transaction.set(analysisRef, {
+      userId,
+      format,
+      quality,
+      triggerContext,
+      overview,
+      code,
+      frameImageUrl: null,
+      videoName,
+      videoDuration,
+      creditsUsed: cost,
+      source: 'api', // mark as API-sourced
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
+    // Create credit transaction record
+    const txRef = adminDb.collection(COLLECTIONS.CREDIT_TRANSACTIONS).doc();
+    transaction.set(txRef, {
+      userId,
+      amount: -cost,
+      type: 'analysis',
+      quality,
+      description: `API analysis (${quality} quality, ${format})`,
+      analysisId: analysisRef.id,
+      purchaseId: null,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  });
+}
+
+/**
  * POST /api/v1/analyze
  *
- * Programmatic REST API for video analysis. Accepts JSON body, returns full
- * analysis result synchronously (no SSE streaming). Designed for CLI tools,
- * scripts, and integrations that don't use MCP.
+ * Programmatic REST API for video analysis. Authenticates via AnimSpec API key,
+ * checks credits, runs the analysis server-side, deducts credits, and returns
+ * the full result as JSON.
  *
- * Authentication: Requires GEMINI_API_KEY to be set server-side.
- * Optionally accepts x-api-key header for future use.
+ * Headers:
+ *   x-api-key: ask_... (your AnimSpec API key)
  *
  * Request body:
  *   {
@@ -57,24 +186,22 @@ const VALID_TRIGGERS = ['hover', 'click', 'scroll', 'load', 'loop', 'focus'];
  *     }
  *   }
  *
- * OR for Gemini Files API (pre-uploaded):
- *   {
- *     "fileUri": "https://generativelanguage.googleapis.com/...",
- *     "fileMimeType": "video/mp4",
- *     "format": "clone_ui_animation",
- *     "quality": "balanced"
- *   }
- *
  * Response:
  *   {
  *     "overview": "Brief summary",
  *     "code": "Full analysis output",
  *     "format": "clone_ui_animation",
  *     "notes": "Additional notes (if any)",
- *     "rawAnalysis": "Raw AI output"
+ *     "creditsUsed": 3,
+ *     "creditsRemaining": 17
  *   }
  */
 export async function POST(request: NextRequest) {
+  // --- Authenticate ---
+  const authResult = await authenticateRequest(request);
+  if ('error' in authResult) return authResult.error;
+  const { userId } = authResult;
+
   try {
     const body = await request.json();
 
@@ -89,12 +216,9 @@ export async function POST(request: NextRequest) {
       metadata,
     } = body;
 
-    // Validate required fields
+    // --- Validate inputs ---
     if (!format) {
-      return Response.json(
-        { error: 'Missing required field: format' },
-        { status: 400 }
-      );
+      return Response.json({ error: 'Missing required field: format' }, { status: 400 });
     }
 
     if (!VALID_FORMATS.includes(format)) {
@@ -125,10 +249,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // --- Check credits ---
+    const creditCheck = await checkCredits(userId, quality as QualityLevel);
+    if (!creditCheck.canProceed) {
+      return Response.json(
+        {
+          error: 'Insufficient credits.',
+          creditsRequired: creditCheck.cost,
+          creditsBalance: creditCheck.balance,
+          hint: 'Purchase more credits at https://animspec.ai/dashboard',
+        },
+        { status: 402 }
+      );
+    }
+
+    // --- Run analysis ---
     const triggerContext: TriggerContext = trigger || null;
     const geminiQuality = quality as GeminiQualityLevel;
 
-    // Build video metadata if provided
     const videoMetadata: VideoMetadata | null = metadata
       ? {
           duration: metadata.duration || 0,
@@ -169,12 +307,28 @@ export async function POST(request: NextRequest) {
 
     const result = parseAnalysisOutput(rawOutput, format as OutputFormat);
 
+    // --- Deduct credits ---
+    await deductCredits(
+      userId,
+      quality as QualityLevel,
+      format as OutputFormat,
+      triggerContext,
+      result.overview,
+      result.code,
+      videoMetadata?.name || 'api-upload',
+      videoMetadata?.duration || 0
+    );
+
+    // Calculate remaining balance
+    const remaining = creditCheck.balance - creditCheck.cost;
+
     return Response.json({
       overview: result.overview,
       code: result.code,
       format: result.format,
       notes: result.notes || null,
-      rawAnalysis: rawOutput,
+      creditsUsed: creditCheck.cost,
+      creditsRemaining: remaining,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Analysis failed';
@@ -194,21 +348,43 @@ export async function GET() {
     version: 'v1',
     description:
       'Analyze video animations and generate structured specifications for AI coding agents.',
+    authentication: {
+      method: 'API Key',
+      header: 'x-api-key',
+      generate: 'POST /api/v1/api-keys (requires Firebase Auth Bearer token)',
+      dashboard: 'https://animspec.ai/dashboard',
+    },
     endpoints: {
       'POST /api/v1/analyze': {
         description: 'Analyze a video and return animation specifications',
+        headers: { 'x-api-key': 'your AnimSpec API key' },
         body: {
           videoBase64: 'string (base64-encoded video)',
           mimeType: 'string (video/mp4, video/webm, video/quicktime)',
           format: 'string (output format)',
-          quality: 'string (balanced | precise)',
+          quality: 'string? (balanced | precise, default: balanced)',
           trigger: 'string? (hover | click | scroll | load | loop | focus)',
           metadata: 'object? { duration, width, height, size, name }',
         },
+      },
+      'POST /api/v1/api-keys': {
+        description: 'Generate a new API key',
+        headers: { Authorization: 'Bearer <firebase-auth-token>' },
+        body: { name: 'string? (key name for your reference)' },
+      },
+      'GET /api/v1/api-keys': {
+        description: 'List your API keys',
+        headers: { Authorization: 'Bearer <firebase-auth-token>' },
+      },
+      'DELETE /api/v1/api-keys': {
+        description: 'Revoke an API key',
+        headers: { Authorization: 'Bearer <firebase-auth-token>' },
+        body: { id: 'string (key document ID)' },
       },
     },
     formats: VALID_FORMATS,
     qualities: VALID_QUALITIES,
     triggers: VALID_TRIGGERS,
+    creditCosts: { balanced: 3, precise: 20 },
   });
 }

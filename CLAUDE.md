@@ -73,20 +73,21 @@ src/components/
 └── ui/          # Button, Badge, CodeBlock, Select, Tabs
 ```
 
-## MCP Server (AI Agent Integration)
+## MCP Server & API (AI Agent Integration)
 
-AnimSpec includes an MCP (Model Context Protocol) server that lets AI coding agents
-(Claude Code, Codex CLI, etc.) analyze videos directly from the command line.
+AnimSpec includes an MCP server and REST API that lets AI coding agents
+(Claude Code, Codex CLI, etc.) analyze videos directly. Users authenticate
+with an AnimSpec API key — no Gemini key needed. Credits are deducted from
+their AnimSpec account.
 
-### Quick Start
+### Setup
 
-```bash
-npm run mcp   # Start the MCP server (stdio transport)
-```
+1. Generate an API key on the AnimSpec dashboard (or via `POST /api/v1/api-keys`)
+2. Configure your MCP client with the key
 
 ### Claude Code Configuration
 
-Add to your `.claude/mcp.json` (project-level) or `~/.claude/mcp.json` (global):
+Add to `.claude/mcp.json` (project-level) or `~/.claude/mcp.json` (global):
 
 ```json
 {
@@ -96,7 +97,7 @@ Add to your `.claude/mcp.json` (project-level) or `~/.claude/mcp.json` (global):
       "args": ["tsx", "--tsconfig", "mcp-server/tsconfig.json", "mcp-server/index.ts"],
       "cwd": "/absolute/path/to/animspec",
       "env": {
-        "GEMINI_API_KEY": "your-gemini-api-key"
+        "ANIMSPEC_API_KEY": "ask_your_api_key_here"
       }
     }
   }
@@ -107,9 +108,9 @@ Add to your `.claude/mcp.json` (project-level) or `~/.claude/mcp.json` (global):
 
 | Tool | Description |
 |------|-------------|
-| `analyze_video` | Analyze a video file and return animation specs |
+| `analyze_video` | Analyze a video file and return animation specs (costs credits) |
 | `list_formats` | List all 15 available output formats |
-| `list_models` | List available quality levels / models |
+| `list_models` | List available quality levels, models, and credit costs |
 
 ### Example Usage in Claude Code
 
@@ -121,11 +122,13 @@ Add to your `.claude/mcp.json` (project-level) or `~/.claude/mcp.json` (global):
 
 ### REST API
 
-`POST /api/v1/analyze` accepts JSON and returns the full analysis synchronously:
+All API requests require an AnimSpec API key via the `x-api-key` header.
 
+**Analyze a video:**
 ```bash
-curl -X POST http://localhost:3000/api/v1/analyze \
+curl -X POST https://animspec.ai/api/v1/analyze \
   -H "Content-Type: application/json" \
+  -H "x-api-key: ask_your_api_key_here" \
   -d '{
     "videoBase64": "<base64-encoded-video>",
     "mimeType": "video/mp4",
@@ -134,15 +137,23 @@ curl -X POST http://localhost:3000/api/v1/analyze \
   }'
 ```
 
-`GET /api/v1/analyze` returns API docs and available formats.
+**API key management** (requires Firebase Auth Bearer token):
+- `POST /api/v1/api-keys` — Generate a new API key
+- `GET /api/v1/api-keys` — List your API keys
+- `DELETE /api/v1/api-keys` — Revoke an API key
+
+**API docs:** `GET /api/v1/analyze` returns full docs, formats, and credit costs.
 
 ### Key Files
 
 | Path | Purpose |
 |------|---------|
-| `mcp-server/index.ts` | MCP server entry point (stdio transport) |
+| `mcp-server/index.ts` | MCP server (thin client, calls AnimSpec API) |
 | `mcp-server/tsconfig.json` | TypeScript config for MCP server |
-| `src/app/api/v1/analyze/route.ts` | REST API endpoint |
+| `src/app/api/v1/analyze/route.ts` | REST API endpoint (auth + credits + Gemini) |
+| `src/app/api/v1/api-keys/route.ts` | API key management endpoint |
+| `src/lib/api-keys/index.ts` | API key generation, validation, revocation |
+| `src/types/database.ts` | Firestore types including `ApiKey` |
 
 ## Constraints
 
