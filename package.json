@@ -6,12 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "mcp": "npx tsx --tsconfig mcp-server/tsconfig.json mcp-server/index.ts"
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.10",
     "@ffmpeg/util": "^0.12.1",
     "@google/genai": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "aws4fetch": "^1.0.20",
     "firebase": "^12.8.0",
     "firebase-admin": "^13.6.0",

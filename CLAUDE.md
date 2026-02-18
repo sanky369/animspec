@@ -73,6 +73,77 @@ src/components/
 └── ui/          # Button, Badge, CodeBlock, Select, Tabs
 ```
 
+## MCP Server (AI Agent Integration)
+
+AnimSpec includes an MCP (Model Context Protocol) server that lets AI coding agents
+(Claude Code, Codex CLI, etc.) analyze videos directly from the command line.
+
+### Quick Start
+
+```bash
+npm run mcp   # Start the MCP server (stdio transport)
+```
+
+### Claude Code Configuration
+
+Add to your `.claude/mcp.json` (project-level) or `~/.claude/mcp.json` (global):
+
+```json
+{
+  "mcpServers": {
+    "animspec": {
+      "command": "npx",
+      "args": ["tsx", "--tsconfig", "mcp-server/tsconfig.json", "mcp-server/index.ts"],
+      "cwd": "/absolute/path/to/animspec",
+      "env": {
+        "GEMINI_API_KEY": "your-gemini-api-key"
+      }
+    }
+  }
+}
+```
+
+### MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `analyze_video` | Analyze a video file and return animation specs |
+| `list_formats` | List all 15 available output formats |
+| `list_models` | List available quality levels / models |
+
+### Example Usage in Claude Code
+
+```
+"Analyze ./demo.mp4 as a clone_ui_animation using precise quality"
+"Use animspec to extract tailwind_animate config from ./hero-animation.webm"
+"List all animspec formats"
+```
+
+### REST API
+
+`POST /api/v1/analyze` accepts JSON and returns the full analysis synchronously:
+
+```bash
+curl -X POST http://localhost:3000/api/v1/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "videoBase64": "<base64-encoded-video>",
+    "mimeType": "video/mp4",
+    "format": "clone_ui_animation",
+    "quality": "balanced"
+  }'
+```
+
+`GET /api/v1/analyze` returns API docs and available formats.
+
+### Key Files
+
+| Path | Purpose |
+|------|---------|
+| `mcp-server/index.ts` | MCP server entry point (stdio transport) |
+| `mcp-server/tsconfig.json` | TypeScript config for MCP server |
+| `src/app/api/v1/analyze/route.ts` | REST API endpoint |
+
 ## Constraints
 
 - Max file size: 100MB
