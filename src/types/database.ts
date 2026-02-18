@@ -88,12 +88,27 @@ export interface Purchase {
   createdAt: Date;
 }
 
+// API Keys for MCP / CLI / programmatic access
+export interface ApiKey {
+  id: string;
+  userId: string;
+  /** SHA-256 hash of the full key — never store the raw key */
+  keyHash: string;
+  /** First 8 characters of the key for display (e.g. "ask_a1b2...") */
+  prefix: string;
+  name: string;
+  isActive: boolean;
+  lastUsedAt: Date | null;
+  createdAt: Date;
+}
+
 // Firestore collection names
 export const COLLECTIONS = {
   PROFILES: 'profiles',
   ANALYSES: 'analyses',
   CREDIT_TRANSACTIONS: 'credit_transactions',
   PURCHASES: 'purchases',
+  API_KEYS: 'api_keys',
 } as const;
 
 // Default values

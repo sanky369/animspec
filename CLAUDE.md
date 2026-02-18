@@ -73,9 +73,92 @@ src/components/
 └── ui/          # Button, Badge, CodeBlock, Select, Tabs
 ```
 
+## MCP Server & API (AI Agent Integration)
+
+AnimSpec includes an MCP server and REST API that lets AI coding agents
+(Claude Code, Codex CLI, etc.) analyze videos directly. Users authenticate
+with an AnimSpec API key — no Gemini key needed. Credits are deducted from
+their AnimSpec account.
+
+### Setup
+
+1. Generate an API key on the AnimSpec dashboard (or via `POST /api/v1/api-keys`)
+2. Configure your MCP client with the key
+
+### Claude Code Configuration
+
+Add to `.claude/mcp.json` (project-level) or `~/.claude/mcp.json` (global):
+
+```json
+{
+  "mcpServers": {
+    "animspec": {
+      "command": "npx",
+      "args": ["tsx", "--tsconfig", "mcp-server/tsconfig.json", "mcp-server/index.ts"],
+      "cwd": "/absolute/path/to/animspec",
+      "env": {
+        "ANIMSPEC_API_KEY": "ask_your_api_key_here"
+      }
+    }
+  }
+}
+```
+
+### MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `analyze_video` | Analyze a video file and return animation specs (costs credits) |
+| `list_formats` | List all 15 available output formats |
+| `list_models` | List available quality levels, models, and credit costs |
+
+### Example Usage in Claude Code
+
+```text
+"Analyze ./demo.mp4 as a clone_ui_animation using precise quality"
+"Use animspec to extract tailwind_animate config from ./hero-animation.webm"
+"List all animspec formats"
+```
+
+### REST API
+
+All API requests require an AnimSpec API key via the `x-api-key` header.
+
+**Analyze a video:**
+```bash
+curl -X POST https://animspec.ai/api/v1/analyze \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: ask_your_api_key_here" \
+  -d '{
+    "videoBase64": "<base64-encoded-video>",
+    "mimeType": "video/mp4",
+    "format": "clone_ui_animation",
+    "quality": "balanced"
+  }'
+```
+
+**API key management** (requires Firebase Auth Bearer token):
+- `POST /api/v1/api-keys` — Generate a new API key
+- `GET /api/v1/api-keys` — List your API keys
+- `DELETE /api/v1/api-keys` — Revoke an API key
+
+**API docs:** `GET /api/v1/analyze` returns full docs, formats, and credit costs.
+
+### Key Files
+
+| Path | Purpose |
+|------|---------|
+| `mcp-server/index.ts` | MCP server (thin client, calls AnimSpec API) |
+| `mcp-server/tsconfig.json` | TypeScript config for MCP server |
+| `src/app/api/v1/analyze/route.ts` | REST API endpoint (auth + credits + Gemini) |
+| `src/app/api/v1/api-keys/route.ts` | API key management endpoint |
+| `src/lib/api-keys/index.ts` | API key generation, validation, revocation |
+| `src/types/database.ts` | Firestore types including `ApiKey` |
+
 ## Constraints
 
 - Max file size: 100MB
 - Files API threshold: 20MB
-- Streaming timeout: 60 seconds (maxDuration in route.ts)
+- Streaming timeout: 60 seconds (maxDuration in /api/analyze)
+- REST API timeout: 300 seconds (maxDuration in /api/v1/analyze)
 - Accepted formats: MP4, WebM, MOV
