@@ -7,6 +7,7 @@ export type OutputFormat =
   | 'remotion_demo_template'
   | 'qa_clone_checklist'
   | 'accessibility_audit'
+  | 'ui_ux_audit'
   | 'interaction_state_machine'
   | 'performance_budget'
   | 'lottie_rive_export'

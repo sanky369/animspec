@@ -42,6 +42,7 @@ function getFormatLabel(format: string): string {
     case 'copy_design_style': return 'Design Style';
     case 'qa_clone_checklist': return 'QA Checklist';
     case 'accessibility_audit': return 'A11y Audit';
+    case 'ui_ux_audit': return 'UI/UX Audit';
     case 'interaction_state_machine': return 'State Machine';
     case 'performance_budget': return 'Perf Budget';
     case 'lottie_rive_export': return 'Lottie/Rive';

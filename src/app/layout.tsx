@@ -22,9 +22,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'AnimSpec — AI Video Animation Analyzer | 15 Output Formats',
+  title: 'AnimSpec — AI Video Animation Analyzer | 16 Output Formats',
   description:
-    'Upload any animation video and get developer-ready specs in 15 formats: CSS keyframes, Tailwind, React Native, Lottie, Figma motion specs, accessibility audits, and more. Powered by Google Gemini AI.',
+    'Upload any animation video and get developer-ready specs in 16 formats: CSS keyframes, Tailwind, React Native, Lottie, Figma motion specs, UI/UX audits, accessibility audits, and more. Powered by Google Gemini AI.',
   keywords: [
     'video animation to code',
     'AI animation analyzer',
@@ -37,6 +37,8 @@ export const metadata: Metadata = {
     'Figma motion spec',
     'React Native Reanimated',
     'animation accessibility audit',
+    'UI UX audit from video',
+    'product design audit',
     'animation performance budget',
     'reverse engineer animation',
     'animation to code converter',
@@ -49,7 +51,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'AnimSpec — AI Video Animation Analyzer',
     description:
-      'Upload any animation video and get developer-ready specs in 15 formats. Clone animations, extract design tokens, audit accessibility, and export to any framework.',
+      'Upload any animation video and get developer-ready specs in 16 formats. Clone animations, extract design tokens, run UI/UX audits, and export to any framework.',
     type: 'website',
     siteName: 'AnimSpec.ai',
     locale: 'en_US',
@@ -58,7 +60,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'AnimSpec — AI Video Animation Analyzer',
     description:
-      'Upload any animation video → get structured specs in 15 formats. CSS, Tailwind, Lottie, React Native, Figma, and more.',
+      'Upload any animation video → get structured specs in 16 formats. CSS, Tailwind, Lottie, React Native, Figma, UX audits, and more.',
   },
   icons: {
     icon: [

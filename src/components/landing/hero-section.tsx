@@ -17,13 +17,13 @@ export function HeroSection() {
 
         <p className="hero-subtitle text-balance">
           Upload a screen recording and get structured prompts your coding agent can implement —
-          clone UIs, extract design tokens, generate components, audit accessibility.
+          clone UIs, extract design tokens, generate components, and run deep UI/UX audits.
         </p>
 
         <div className="hero-features">
           <div className="feature-tag stagger-1">
             <ZapIcon className="w-3.5 h-3.5" />
-            <span>15 Output Formats</span>
+            <span>16 Output Formats</span>
           </div>
           <div className="feature-tag stagger-2">
             <ClipboardIcon className="w-3.5 h-3.5" />

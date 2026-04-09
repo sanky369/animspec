@@ -13,7 +13,7 @@ const steps = [
     number: 2,
     icon: SearchIcon,
     title: 'Choose Your Format',
-    description: 'Pick from 15 prompt formats — React components, Tailwind config, design tokens, and more',
+    description: 'Pick from 16 prompt formats — React components, UX audits, design tokens, and more',
   },
   {
     number: 3,

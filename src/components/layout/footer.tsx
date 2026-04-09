@@ -16,7 +16,7 @@ export function Footer() {
               <span className="logo-text">AnimSpec</span>
             </a>
             <p className="footer-tagline">
-              AI video animation analyzer. Upload any video, get developer-ready specs in 15 formats.
+              AI video animation analyzer. Upload any video, get developer-ready specs in 16 formats.
             </p>
             <p className="footer-powered">
               Powered by Google Gemini

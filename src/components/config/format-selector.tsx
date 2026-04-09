@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { OutputFormat } from '@/types/analysis';
-import { FileTextIcon, CSSIcon, JSIcon, ReactIcon, VideoIcon, AccessibilityIcon, StateMachineIcon, GaugeIcon, LottieIcon, StoryboardIcon, TailwindIcon, MobileIcon, FigmaIcon } from '@/components/ui/icons';
+import { FileTextIcon, CSSIcon, JSIcon, ReactIcon, VideoIcon, AccessibilityIcon, StateMachineIcon, GaugeIcon, LottieIcon, StoryboardIcon, TailwindIcon, MobileIcon, FigmaIcon, SearchIcon } from '@/components/ui/icons';
 
 interface FormatSelectorProps {
   value: OutputFormat;
@@ -124,6 +124,13 @@ const FORMAT_OPTIONS: FormatOption[] = [
     label: 'Performance Budget',
     icon: GaugeIcon,
     useCase: 'Layout thrash detection, GPU layers, 60fps optimization',
+    group: 'audit',
+  },
+  {
+    id: 'ui_ux_audit',
+    label: 'UI/UX Audit',
+    icon: SearchIcon,
+    useCase: 'Professional UX review of the full flow: friction, hierarchy, trust, feedback, and recommendations',
     group: 'audit',
   },
   {

@@ -14,6 +14,7 @@ import {
   GaugeIcon,
   StateMachineIcon,
   FileTextIcon,
+  SearchIcon,
 } from '@/components/ui/icons';
 
 interface UseCase {
@@ -117,6 +118,11 @@ const USE_CASE_GROUPS: UseCaseGroup[] = [
         description: 'Layout thrash detection, GPU layers, 60fps optimization',
       },
       {
+        icon: SearchIcon,
+        title: 'UI/UX Audit',
+        description: 'Senior-level UX critique of the full flow: friction, clarity, trust, and recommendations',
+      },
+      {
         icon: StateMachineIcon,
         title: 'Interaction State Machine',
         description: 'XState/useReducer states, transitions, and guards from observed UI',
@@ -135,9 +141,9 @@ export function UseCasesSection() {
     <section className="use-cases-section" id="use-cases">
       <div className="section-header">
         <span className="section-eyebrow">Prompt Formats</span>
-        <h2 className="section-title">15 Prompt Formats for Every Workflow</h2>
+        <h2 className="section-title">16 Prompt Formats for Every Workflow</h2>
         <p className="section-subtitle">
-          One video, 15 ways to prompt your coding agent — clone, extract, export, or audit
+          One video, 16 ways to prompt your coding agent — clone, extract, export, or audit
         </p>
       </div>
 

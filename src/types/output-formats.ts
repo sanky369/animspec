@@ -75,6 +75,14 @@ export const FORMAT_OPTIONS: FormatOption[] = [
     bestFor: 'Inclusive design, WCAG certification, motion sensitivity safety',
   },
   {
+    id: 'ui_ux_audit',
+    label: 'UI/UX Audit',
+    icon: '🧭',
+    language: 'markdown',
+    description: 'Deep product design critique of the observed flow: clarity, friction, trust, feedback, and usability',
+    bestFor: 'Flow reviews, onboarding critiques, UX cleanup, product design audits',
+  },
+  {
     id: 'interaction_state_machine',
     label: 'Interaction State Machine',
     icon: '⚙️',

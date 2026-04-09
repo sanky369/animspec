@@ -9,7 +9,7 @@ const jsonLd = {
   applicationCategory: 'DeveloperApplication',
   operatingSystem: 'Web',
   description:
-    'AI-powered video animation analyzer that converts animation videos into developer-ready specifications in 15 formats including CSS, Tailwind, React Native, Lottie, and Figma.',
+    'AI-powered video animation analyzer that converts animation videos into developer-ready specifications in 16 formats including CSS, Tailwind, React Native, Lottie, Figma, and deep UI/UX audits.',
   offers: {
     '@type': 'Offer',
     price: '0',
@@ -24,6 +24,7 @@ const jsonLd = {
     'Generate Lottie/Rive specifications',
     'Create Figma motion specs',
     'Accessibility audit with WCAG compliance',
+    'Deep UI/UX audit of recorded flows',
     'Animation performance budget analysis',
     'Interaction state machine generation',
     'Storyboard breakdown',

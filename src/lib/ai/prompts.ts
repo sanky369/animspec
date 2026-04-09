@@ -967,6 +967,124 @@ if (prefersReducedMotion) {
 - Reduced-motion coverage: [X]/100
 - Screen reader compatibility: [X]/100`,
 
+  ui_ux_audit: `
+## OUTPUT FORMAT: UI/UX Audit
+
+Audit this recorded product flow like a senior product designer and UX reviewer.
+
+**Goal:** Produce a deep, evidence-backed UI/UX critique of the observed flow — what is clear, what is confusing, where users may hesitate, what feels polished, and what should change first.
+
+Required structure:
+
+## Executive Summary
+- Overall product impression: [1 short paragraph]
+- Primary user goal inferred: [what the user is probably trying to accomplish]
+- Biggest strengths: [3 bullets]
+- Biggest risks: [3 bullets]
+
+## Flow Breakdown
+
+| Step / Timestamp | What the user sees | Likely user intent | UX risk / friction | Severity |
+|------------------|--------------------|--------------------|--------------------|----------|
+| [00:00-00:04] | [observed screen state] | [what user is trying to do] | [issue/opportunity] | low/med/high |
+[Cover the full visible flow in sequence]
+
+## Heuristic Scorecard
+
+Score each area from 1-5 and justify with evidence from the video.
+
+| Area | Score | Evidence |
+|------|-------|----------|
+| Clarity of layout and hierarchy | [1-5] | [specific notes] |
+| Navigation and wayfinding | [1-5] | [specific notes] |
+| Affordance and click confidence | [1-5] | [specific notes] |
+| Feedback and system status | [1-5] | [specific notes] |
+| Consistency and predictability | [1-5] | [specific notes] |
+| Visual polish and trust | [1-5] | [specific notes] |
+| Efficiency and cognitive load | [1-5] | [specific notes] |
+| Error prevention and recovery | [1-5] | [specific notes] |
+| Responsiveness of interactions | [1-5] | [specific notes] |
+| Accessibility and inclusivity | [1-5] | [specific notes] |
+
+## Detailed Findings
+
+### 1. Information Hierarchy
+- What stands out first
+- What gets lost or competes for attention
+- Whether spacing, contrast, size, and motion guide the eye correctly
+
+### 2. Task Flow & Friction
+- Points where the user must stop and think
+- Extra steps, ambiguous decisions, or missing guidance
+- Where momentum drops or confidence drops
+
+### 3. Interaction Quality
+- Hover, focus, click, loading, success, and error feedback
+- Whether transitions feel helpful vs decorative
+- Whether motion clarifies cause-and-effect
+
+### 4. Visual Design Review
+- Typography quality
+- Spacing rhythm
+- Color usage and contrast
+- Surface, border, and shadow consistency
+- Trust and perceived quality
+
+### 5. UX Writing / Microcopy
+- Labels that are clear vs vague
+- Missing helper text, missing empty states, missing reassurance
+- CTA quality and expectation-setting
+
+## Friction Log
+
+| Issue | Why it matters | User impact | Recommended fix |
+|------|-----------------|-------------|-----------------|
+| [issue] | [reason] | [confusion/drop-off/slower completion] | [specific recommendation] |
+[List the key issues only — be concrete]
+
+## What a Stronger Version Would Do
+- [Specific behavior or layout improvement]
+- [Specific feedback/state improvement]
+- [Specific copy or hierarchy improvement]
+- [Specific trust/accessibility improvement]
+
+## Prioritized Recommendations
+
+### Quick Wins (ship this week)
+1. [specific fix]
+2. [specific fix]
+3. [specific fix]
+
+### High-Impact UX Improvements
+1. [specific fix]
+2. [specific fix]
+3. [specific fix]
+
+### Strategic Redesign Opportunities
+1. [bigger flow or IA change]
+2. [bigger trust/conversion change]
+
+## Redesign Brief for an Agent or Designer
+
+\`\`\`markdown
+Goal: [what the redesign should accomplish]
+User problem: [main friction]
+Design direction: [clear design recommendation]
+Must keep: [what already works]
+Must improve: [top priorities]
+Success metric: [how to know the redesign worked]
+\`\`\`
+
+## Final Verdict
+**UI/UX Score: [X]/100**
+- Usability: [X]/100
+- Clarity: [X]/100
+- Visual polish: [X]/100
+- Interaction quality: [X]/100
+- Trust / confidence: [X]/100
+
+End with a blunt 2-4 sentence summary like a professional design review: what is working, what is hurting the experience, and what should happen next.`,
+
   interaction_state_machine: `
 ## OUTPUT FORMAT: Interaction State Machine
 

@@ -6,6 +6,7 @@ const FULL_OUTPUT_FORMATS: OutputFormat[] = [
   'remotion_demo_template',
   'qa_clone_checklist',
   'accessibility_audit',
+  'ui_ux_audit',
   'interaction_state_machine',
   'performance_budget',
   'lottie_rive_export',
@@ -96,6 +97,7 @@ export function getLanguageForFormat(format: OutputFormat): string {
     case 'remotion_demo_template':
     case 'qa_clone_checklist':
     case 'accessibility_audit':
+    case 'ui_ux_audit':
     case 'performance_budget':
     case 'storyboard_breakdown':
     case 'figma_motion_spec':
@@ -121,6 +123,7 @@ export function getFileExtensionForFormat(format: OutputFormat): string {
     case 'remotion_demo_template':
     case 'qa_clone_checklist':
     case 'accessibility_audit':
+    case 'ui_ux_audit':
     case 'performance_budget':
     case 'storyboard_breakdown':
     case 'figma_motion_spec':
