@@ -57,6 +57,10 @@ export interface Analysis {
   videoName: string;
   videoDuration: number;
   creditsUsed: number;
+  runId?: string | null;
+  verificationScore?: number | null;
+  pipelineFamily?: 'reconstruct' | 'audit' | 'behavior' | null;
+  pipelineVersion?: string | null;
   createdAt: Date;
 }
 
@@ -89,9 +93,44 @@ export interface Purchase {
 }
 
 // Firestore collection names
+export interface AnalysisRun {
+  id: string;
+  userId: string | null;
+  format: OutputFormat;
+  quality: QualityLevel;
+  triggerContext: TriggerContext;
+  family: 'reconstruct' | 'audit' | 'behavior';
+  complexity: 'simple' | 'moderate' | 'complex';
+  pipelineVersion: string;
+  generatorModel: string;
+  verifierModel?: string | null;
+  status: 'running' | 'complete' | 'failed';
+  iterationCount: number;
+  finalTitle?: string | null;
+  finalOverview?: string | null;
+  finalFormat?: OutputFormat | null;
+  verificationScore?: number | null;
+  verificationSummary?: string | null;
+  errorMessage?: string | null;
+  stageCount?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AnalysisRunArtifact {
+  id: string;
+  type: string;
+  summary: string;
+  schemaVersion: number;
+  storagePath: string | null;
+  payload: unknown;
+  updatedAt: Date;
+}
+
 export const COLLECTIONS = {
   PROFILES: 'profiles',
   ANALYSES: 'analyses',
+  ANALYSIS_RUNS: 'analysis_runs',
   CREDIT_TRANSACTIONS: 'credit_transactions',
   PURCHASES: 'purchases',
 } as const;

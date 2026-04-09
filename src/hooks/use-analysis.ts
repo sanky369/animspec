@@ -54,6 +54,7 @@ interface UseAnalysisReturn {
   currentPass: number;
   totalPasses: number;
   passName: string;
+  stageLabels: string[];
   analyze: (file: File, metadata: VideoMetadata, config: AnalysisConfig, authToken?: string | null) => Promise<void>;
   switchFormat: (format: OutputFormat) => void;
   reset: () => void;
@@ -71,6 +72,7 @@ export function useAnalysis(): UseAnalysisReturn {
   const [currentPass, setCurrentPass] = useState(0);
   const [totalPasses, setTotalPasses] = useState(0);
   const [passName, setPassName] = useState('');
+  const [stageLabels, setStageLabels] = useState<string[]>([]);
 
   // Get list of formats that have been generated
   const generatedFormats = Object.keys(resultsMap) as OutputFormat[];
@@ -85,6 +87,7 @@ export function useAnalysis(): UseAnalysisReturn {
       setCurrentPass(0);
       setTotalPasses(0);
       setPassName('');
+      setStageLabels([]);
 
       let frameImage: string | undefined;
       let frameGrid: {
@@ -169,6 +172,9 @@ export function useAnalysis(): UseAnalysisReturn {
         formData.append('videoName', metadata.name);
         if (config.triggerContext) {
           formData.append('triggerContext', config.triggerContext);
+        }
+        if (frameImage) {
+          formData.append('framePreviewBase64', frameImage.replace(/^data:image\/\w+;base64,/, ''));
         }
         if (config.agenticMode) {
           formData.append('agenticMode', 'true');
@@ -323,6 +329,13 @@ export function useAnalysis(): UseAnalysisReturn {
         const decoder = new TextDecoder();
         let fullContent = '';
 
+        const completionPayload: {
+          finalArtifact?: {
+            overview?: string;
+            verification?: AnalysisResult['verificationReport'] & { score?: number };
+          };
+        } = {};
+
         const parser = createSseParser((payload: string) => {
           if (!payload || payload === '[DONE]') return;
 
@@ -331,32 +344,43 @@ export function useAnalysis(): UseAnalysisReturn {
 
             if (data.type === 'progress') {
               setProgress({ step: 'generating', message: data.message });
-            } else if (data.type === 'pass_start') {
-              const passStepMap: Record<number, string> = {
+            } else if (data.type === 'run_created') {
+              setStageLabels(Array.isArray(data.stageLabels) ? data.stageLabels : []);
+              setTotalPasses(Array.isArray(data.stageLabels) ? data.stageLabels.length : 0);
+            } else if (data.type === 'stage_start') {
+              const passStepMap: Record<number, AnalysisProgress['step']> = {
                 1: 'pass_1_decomposing',
                 2: 'pass_2_analyzing',
                 3: 'pass_3_generating',
                 4: 'pass_4_verifying',
               };
-              setCurrentPass(data.pass);
-              setTotalPasses(data.totalPasses);
-              setPassName(data.passName);
+              setCurrentPass(data.stageIndex);
+              setTotalPasses(data.totalStages);
+              setPassName(data.stageLabel);
               setProgress({
-                step: (passStepMap[data.pass] || 'analyzing') as AnalysisProgress['step'],
-                message: `Pass ${data.pass}/${data.totalPasses}: ${data.passName}...`,
-                currentPass: data.pass,
-                totalPasses: data.totalPasses,
-                passName: data.passName,
+                step: passStepMap[data.stageIndex] || 'analyzing',
+                message: `Stage ${data.stageIndex}/${data.totalStages}: ${data.stageLabel}...`,
+                currentPass: data.stageIndex,
+                totalPasses: data.totalStages,
+                passName: data.stageLabel,
               });
-            } else if (data.type === 'pass_complete') {
-              // Pass completed, keep progress updated
+            } else if (data.type === 'stage_complete' || data.type === 'pass_complete') {
+              if (data.message) {
+                setProgress((prev) => prev ? { ...prev, message: data.message } : { step: 'generating', message: data.message });
+              }
             } else if (data.type === 'thinking') {
-              setThinkingContent((prev) => prev + data.data);
+              setThinkingContent((prev) => prev + (data.data || data.chunk || ''));
+            } else if (data.type === 'stage_output') {
+              fullContent += data.chunk;
+              setStreamingContent(fullContent);
             } else if (data.type === 'chunk') {
               fullContent += data.data;
               setStreamingContent(fullContent);
+            } else if (data.type === 'verification') {
+              // final artifact will attach the full verification object on completion
             } else if (data.type === 'complete') {
               fullContent = data.data;
+              completionPayload.finalArtifact = data.finalArtifact || undefined;
               setStreamingContent(fullContent);
             } else if (data.type === 'error') {
               throw new Error(data.message);
@@ -385,10 +409,21 @@ export function useAnalysis(): UseAnalysisReturn {
 
         // For agentic mode, extract the verification report from Pass 4 output
         if (config.agenticMode) {
-          const verification = extractVerificationReport(fullContent);
+          const finalArtifact = completionPayload.finalArtifact;
+          const verification = (finalArtifact?.verification as ({ score?: number; overallScore?: number } & NonNullable<AnalysisResult['verificationReport']>) | undefined)
+            || extractVerificationReport(fullContent);
           if (verification) {
-            newResult.verificationScore = verification.overallScore;
-            newResult.verificationReport = verification;
+            const verificationWithScore = verification as { score?: number; overallScore?: number };
+            const score = typeof verificationWithScore.score === 'number'
+              ? verificationWithScore.score
+              : verificationWithScore.overallScore;
+            if (typeof score === 'number') {
+              newResult.verificationScore = score;
+            }
+            newResult.verificationReport = verification as AnalysisResult['verificationReport'];
+          }
+          if (finalArtifact?.overview) {
+            newResult.overview = finalArtifact.overview;
           }
         }
         setResult(newResult);
@@ -429,6 +464,7 @@ export function useAnalysis(): UseAnalysisReturn {
     setCurrentPass(0);
     setTotalPasses(0);
     setPassName('');
+    setStageLabels([]);
   }, []);
 
   return {
@@ -444,6 +480,7 @@ export function useAnalysis(): UseAnalysisReturn {
     currentPass,
     totalPasses,
     passName,
+    stageLabels,
     analyze,
     switchFormat,
     reset,

@@ -20,6 +20,7 @@ interface OutputPanelProps {
   currentPass?: number;
   totalPasses?: number;
   passName?: string;
+  stageLabels?: string[];
 }
 
 const standardTabs = [
@@ -46,6 +47,7 @@ export function OutputPanel({
   currentPass,
   totalPasses,
   passName,
+  stageLabels,
 }: OutputPanelProps) {
   const [activeTab, setActiveTab] = useState('code');
 
@@ -72,6 +74,7 @@ export function OutputPanel({
               currentPass={currentPass ?? 0}
               totalPasses={totalPasses ?? 4}
               passName={passName ?? ''}
+              stageLabels={stageLabels}
               streamingContent={streamingContent}
               thinkingContent={thinkingContent ?? ''}
               message={progress.message}

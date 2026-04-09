@@ -7,6 +7,7 @@ interface AgenticProgressProps {
   currentPass: number;
   totalPasses: number;
   passName: string;
+  stageLabels?: string[];
   streamingContent: string;
   thinkingContent: string;
   message: string;
@@ -42,6 +43,7 @@ export function AgenticProgress({
   currentPass,
   totalPasses,
   passName,
+  stageLabels,
   streamingContent,
   thinkingContent,
   message,
@@ -56,6 +58,15 @@ export function AgenticProgress({
     }
   }, [thinkingContent, thinkingOpen]);
 
+  const dynamicSteps = stageLabels && stageLabels.length > 0
+    ? stageLabels.map((label, index) => ({
+        id: index + 1,
+        label: label.split(' ')[0] || `Stage ${index + 1}`,
+        fullLabel: label,
+        Icon: PASS_STEPS[index % PASS_STEPS.length].Icon,
+      }))
+    : PASS_STEPS;
+
   return (
     <div className="loading-container">
       {/* Spinner */}
@@ -68,7 +79,7 @@ export function AgenticProgress({
 
       {/* Pipeline visualization */}
       <div className="agentic-pipeline">
-        {PASS_STEPS.map((step, index) => {
+        {dynamicSteps.map((step, index) => {
           const isComplete = step.id < currentPass;
           const isActive = step.id === currentPass;
           const isPending = step.id > currentPass;

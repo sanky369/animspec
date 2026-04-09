@@ -41,6 +41,7 @@ export default function DashboardPage() {
     currentPass,
     totalPasses,
     passName,
+    stageLabels,
     analyze,
     switchFormat,
     reset: resetAnalysis,
@@ -156,6 +157,7 @@ export default function DashboardPage() {
           currentPass={currentPass}
           totalPasses={totalPasses}
           passName={passName}
+          stageLabels={stageLabels}
         />
       </div>
     </>

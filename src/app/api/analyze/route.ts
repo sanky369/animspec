@@ -7,6 +7,9 @@ import {
 } from '@/lib/ai/gemini';
 import { analyzeVideoWithKimiStream } from '@/lib/ai/kimi';
 import { runAgenticPipeline } from '@/lib/ai/agentic-pipeline';
+import { runDeepAnalysis } from '@/lib/video-understanding/orchestrator';
+import type { DeepAnalysisRunResult } from '@/lib/video-understanding/artifacts';
+import { createAnalysisRunRecord, finalizeAnalysisRunRecord, persistArtifacts } from '@/lib/video-understanding/persistence/run-store';
 import { adminAuth, adminDb, adminStorage } from '@/lib/firebase/admin';
 import { COLLECTIONS, CREDIT_COSTS, AGENTIC_CREDIT_COSTS, MAX_ANALYSES_PER_USER } from '@/types/database';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -16,6 +19,7 @@ import { fetchAsBase64, isR2Configured, deleteObject } from '@/lib/storage/r2';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 300 seconds timeout for Kimi thinking mode
+const DEEP_ANALYSIS_PIPELINE_VERSION = process.env.DEEP_ANALYSIS_PIPELINE_VERSION ?? 'v2';
 
 function parseNumber(value: FormDataEntryValue | null): number | null {
   if (value === null) return null;
@@ -106,8 +110,14 @@ async function deductCreditsAndSaveAnalysis(
   frameImageBase64: string | null,
   videoName: string,
   videoDuration: number,
-  cost?: number
-): Promise<{ success: boolean; error?: string }> {
+  cost?: number,
+  metadata?: {
+    runId?: string | null;
+    verificationScore?: number | null;
+    pipelineFamily?: 'reconstruct' | 'audit' | 'behavior' | null;
+    pipelineVersion?: string | null;
+  }
+): Promise<{ success: boolean; error?: string; analysisId?: string }> {
   const creditCost = cost ?? CREDIT_COSTS[quality];
   const profileRef = adminDb.collection(COLLECTIONS.PROFILES).doc(userId);
 
@@ -172,6 +182,10 @@ async function deductCreditsAndSaveAnalysis(
         videoName,
         videoDuration,
         creditsUsed: creditCost,
+        runId: metadata?.runId ?? null,
+        verificationScore: metadata?.verificationScore ?? null,
+        pipelineFamily: metadata?.pipelineFamily ?? null,
+        pipelineVersion: metadata?.pipelineVersion ?? null,
         createdAt: FieldValue.serverTimestamp(),
       });
 
@@ -189,7 +203,7 @@ async function deductCreditsAndSaveAnalysis(
       });
     });
 
-    return { success: true };
+    return { success: true, analysisId: 'saved' };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to process';
     return { success: false, error: message };
@@ -217,21 +231,25 @@ export async function POST(request: NextRequest) {
     const r2ObjectKey = formData.get('r2ObjectKey') as string | null;
     const r2MimeType = formData.get('r2MimeType') as string | null;
 
+    const framePreviewBase64 = formData.get('framePreviewBase64') as string | null;
     const frameGridBase64 = formData.get('frameGridBase64') as string | null;
     const frameGridWidth = parseNumber(formData.get('frameGridWidth') as string | null);
     const frameGridHeight = parseNumber(formData.get('frameGridHeight') as string | null);
     const frameGridCount = parseNumber(formData.get('frameGridCount') as string | null);
     const frameGridColumns = parseNumber(formData.get('frameGridColumns') as string | null);
 
-    const analysisImages = frameGridBase64
-      ? [
-          {
-            base64: frameGridBase64,
-            mimeType: 'image/jpeg',
-            description: `Keyframe grid (${frameGridCount ?? 'unknown'} frames, ${frameGridColumns ?? 'unknown'} columns, ${frameGridWidth ?? 'unknown'}x${frameGridHeight ?? 'unknown'})`,
-          },
-        ]
-      : undefined;
+    const analysisImages = [
+      ...(framePreviewBase64 ? [{
+        base64: framePreviewBase64,
+        mimeType: 'image/jpeg',
+        description: 'Primary reference frame extracted from the uploaded video',
+      }] : []),
+      ...(frameGridBase64 ? [{
+        base64: frameGridBase64,
+        mimeType: 'image/jpeg',
+        description: `Keyframe grid (${frameGridCount ?? 'unknown'} frames, ${frameGridColumns ?? 'unknown'} columns, ${frameGridWidth ?? 'unknown'}x${frameGridHeight ?? 'unknown'})`,
+      }] : []),
+    ];
 
     if (!format || !quality) {
       return new Response(
@@ -294,6 +312,9 @@ export async function POST(request: NextRequest) {
 
     // Start analysis in background
     (async () => {
+      let deepRunId: string | null = null;
+      let deepStageCount = 0;
+
       try {
         await writer.write(
           encoder.encode(
@@ -303,8 +324,159 @@ export async function POST(request: NextRequest) {
 
         let fullResult = '';
 
-        // === AGENTIC MODE: 4-pass pipeline ===
-        if (agenticMode && quality !== 'kimi') {
+        // === AGENTIC MODE: V2 planner/orchestrator ===
+        if (agenticMode && quality !== 'kimi' && DEEP_ANALYSIS_PIPELINE_VERSION !== 'v1') {
+          let runId: string | null = null;
+          let runFamily: 'reconstruct' | 'audit' | 'behavior' | null = null;
+          let verificationScore: number | null = null;
+          let deepResult: DeepAnalysisRunResult | null = null;
+
+          const iterator = runDeepAnalysis({
+            apiKey: process.env.GEMINI_API_KEY || '',
+            format,
+            quality,
+            triggerContext,
+            videoMetadata,
+            fileSize,
+            videoName: videoMetadata?.name || 'Unknown',
+            fileUri: fileUri || undefined,
+            fileMimeType: fileMimeType || undefined,
+            inlineMimeType: mimeType || undefined,
+            inlineVideoBase64: videoBase64 || undefined,
+            r2ObjectKey: r2ObjectKey || undefined,
+            framePreviewBase64: framePreviewBase64 || undefined,
+            frameGridBase64: frameGridBase64 || undefined,
+            frameGridWidth,
+            frameGridHeight,
+            frameGridCount,
+            frameGridColumns,
+          });
+
+          let step = await iterator.next();
+          while (!step.done) {
+            const event = step.value;
+
+            switch (event.type) {
+              case 'run_created':
+                runId = event.runId;
+                deepRunId = event.runId;
+                runFamily = event.family as 'reconstruct' | 'audit' | 'behavior';
+                await createAnalysisRunRecord({
+                  runId,
+                  userId,
+                  format,
+                  quality,
+                  triggerContext,
+                  family: runFamily,
+                  complexity: event.complexity as 'simple' | 'moderate' | 'complex',
+                  pipelineVersion: 'v2',
+                  generatorModel: event.generatorModel,
+                  verifierModel: event.verifierModel,
+                });
+                await writer.write(
+                  encoder.encode(`data: ${JSON.stringify(event)}\n\n`)
+                );
+                break;
+              case 'stage_start':
+              case 'stage_complete':
+              case 'stage_output':
+              case 'thinking':
+              case 'revision_start':
+              case 'verification':
+                if (event.type === 'stage_output') {
+                  fullResult += event.chunk;
+                }
+                if (event.type === 'verification') {
+                  verificationScore = event.verification.score;
+                }
+                await writer.write(
+                  encoder.encode(`data: ${JSON.stringify(event)}\n\n`)
+                );
+                break;
+              case 'complete':
+                fullResult = event.finalArtifact.content;
+                await writer.write(
+                  encoder.encode(`data: ${JSON.stringify({
+                    type: 'complete',
+                    data: event.finalArtifact.content,
+                    finalArtifact: event.finalArtifact,
+                    runId,
+                  })}\n\n`)
+                );
+                break;
+              case 'error':
+                throw new Error(event.message);
+            }
+
+            step = await iterator.next();
+          }
+
+          deepResult = step.value;
+
+          if (runId && deepResult) {
+            deepStageCount = deepResult.stageArtifacts.length;
+            await persistArtifacts({
+              runId,
+              sharedArtifacts: deepResult.sharedArtifacts,
+              stageArtifacts: deepResult.stageArtifacts,
+              finalArtifact: deepResult.finalArtifact,
+              verification: deepResult.verification,
+            });
+            await finalizeAnalysisRunRecord({
+              runId,
+              status: 'complete',
+              finalArtifact: deepResult.finalArtifact,
+              verification: deepResult.verification,
+              stageCount: deepResult.stageArtifacts.length,
+            });
+          }
+
+          if (isAuthenticated && userId) {
+            const overview = extractOverview(fullResult);
+            const result = await deductCreditsAndSaveAnalysis(
+              userId,
+              quality,
+              format,
+              triggerContext,
+              overview,
+              fullResult,
+              framePreviewBase64 || frameGridBase64,
+              videoMetadata?.name || 'Unknown',
+              videoMetadata?.duration || 0,
+              AGENTIC_CREDIT_COSTS[quality],
+              {
+                runId,
+                verificationScore,
+                pipelineFamily: runFamily,
+                pipelineVersion: 'v2',
+              }
+            );
+
+            if (!result.success) {
+              console.error('Failed to save analysis:', result.error);
+            }
+
+            after(async () => {
+              try {
+                const snapshot = await adminDb
+                  .collection(COLLECTIONS.ANALYSES)
+                  .where('userId', '==', userId)
+                  .orderBy('createdAt', 'desc')
+                  .get();
+
+                if (snapshot.size > MAX_ANALYSES_PER_USER) {
+                  const toDelete = snapshot.docs.slice(MAX_ANALYSES_PER_USER);
+                  const batch = adminDb.batch();
+                  for (const doc of toDelete) batch.delete(doc.ref);
+                  await batch.commit();
+                }
+              } catch (cleanupError) {
+                console.error('Failed to cleanup old analyses:', cleanupError);
+              }
+            });
+          }
+
+        } else if (agenticMode && quality !== 'kimi') {
           const pipeline = runAgenticPipeline({
             videoBase64: videoBase64 || undefined,
             mimeType: mimeType || undefined,
@@ -314,7 +486,7 @@ export async function POST(request: NextRequest) {
             quality: quality as GeminiQualityLevel,
             triggerContext,
             videoMetadata,
-            analysisImages,
+            analysisImages: analysisImages.length > 0 ? analysisImages : undefined,
           });
 
           for await (const event of pipeline) {
@@ -428,7 +600,7 @@ export async function POST(request: NextRequest) {
         }
 
         // If authenticated, deduct credits and save analysis
-        if (isAuthenticated && userId) {
+        if (isAuthenticated && userId && !(agenticMode && quality !== 'kimi' && DEEP_ANALYSIS_PIPELINE_VERSION !== 'v1')) {
           const overview = extractOverview(fullResult);
           const code = fullResult;
           const cost = agenticMode ? AGENTIC_CREDIT_COSTS[quality] : CREDIT_COSTS[quality];
@@ -476,14 +648,28 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        await writer.write(
-          encoder.encode(
-            `data: ${JSON.stringify({ type: 'complete', data: fullResult })}\n\n`
-          )
-        );
+        if (!(agenticMode && quality !== 'kimi' && DEEP_ANALYSIS_PIPELINE_VERSION !== 'v1')) {
+          await writer.write(
+            encoder.encode(
+              `data: ${JSON.stringify({ type: 'complete', data: fullResult })}\n\n`
+            )
+          );
+        }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
         console.error('Analysis error:', error);
+        if (deepRunId) {
+          try {
+            await finalizeAnalysisRunRecord({
+              runId: deepRunId,
+              status: 'failed',
+              errorMessage,
+              stageCount: deepStageCount,
+            });
+          } catch (finalizeError) {
+            console.error('Failed to finalize analysis run:', finalizeError);
+          }
+        }
         await writer.write(
           encoder.encode(
             `data: ${JSON.stringify({ type: 'error', message: errorMessage })}\n\n`
