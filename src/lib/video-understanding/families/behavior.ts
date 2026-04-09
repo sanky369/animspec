@@ -39,7 +39,7 @@
         model: options.plan.generatorModel,
         video: options.sharedArtifacts.video,
         artifacts: options.sharedArtifacts,
-        prompt: `${buildAnalysisPrompt(options.format, options.triggerContext, options.videoMetadata, 'precise')}
+        prompt: `${buildAnalysisPrompt(options.format, options.triggerContext, options.videoMetadata, options.plan.generatorModel.startsWith('kimi') ? 'kimi' : 'precise')}
 
 Behavior inventory:
 ${JSON.stringify(inventory, null, 2)}

@@ -13,7 +13,7 @@ interface AgenticToggleProps {
 
 export function AgenticToggle({ value, onChange, disabled, quality }: AgenticToggleProps) {
   const isKimi = quality === 'kimi';
-  const effectiveDisabled = disabled || isKimi;
+  const effectiveDisabled = disabled;
   const standardCost = CREDIT_COSTS[quality];
   const agenticCost = AGENTIC_CREDIT_COSTS[quality];
 
@@ -54,7 +54,7 @@ export function AgenticToggle({ value, onChange, disabled, quality }: AgenticTog
               marginTop: '2px',
             }}>
               {isKimi
-                ? 'Not available with Kimi'
+                ? 'Multi-stage deep analysis for Kimi with validation and revision'
                 : '4-pass pipeline with self-verification'
               }
             </div>
@@ -62,14 +62,12 @@ export function AgenticToggle({ value, onChange, disabled, quality }: AgenticTog
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {!isKimi && (
-            <span style={{
-              fontSize: '10px',
-              color: 'var(--text-muted)',
-            }}>
-              {value ? `${agenticCost} cr` : `${standardCost} cr`}
-            </span>
-          )}
+          <span style={{
+            fontSize: '10px',
+            color: 'var(--text-muted)',
+          }}>
+            {value ? `${agenticCost} cr` : `${standardCost} cr`}
+          </span>
 
           {/* Toggle switch */}
           <div

@@ -13,6 +13,16 @@ export interface ModelCapability {
 }
 
 export const MODEL_REGISTRY: Record<string, ModelCapability> = {
+  'kimi-k2.5': {
+    id: 'kimi-k2.5',
+    label: 'Kimi K2.5',
+    multimodalVideo: true,
+    structuredOutput: false,
+    toolCalling: false,
+    caching: false,
+    streaming: true,
+    stable: false,
+  },
   'gemini-3-flash-preview': {
     id: 'gemini-3-flash-preview',
     label: 'Gemini 3 Flash Preview',
@@ -54,7 +64,7 @@ export function resolveGeneratorModel(
   complexity: ComplexityTier
 ): string {
   if (quality === 'kimi') {
-    return 'gemini-3-flash-preview';
+    return 'kimi-k2.5';
   }
 
   if (quality === 'precise') {
@@ -74,6 +84,9 @@ export function resolveVerifierModel(
   family: AnalysisFamily,
   complexity: ComplexityTier
 ): string {
+  if (quality === 'kimi') {
+    return 'kimi-k2.5';
+  }
   if (quality === 'precise' && family === 'reconstruct' && complexity !== 'simple') {
     return 'gemini-3.1-pro-preview';
   }

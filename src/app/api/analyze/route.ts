@@ -325,7 +325,7 @@ export async function POST(request: NextRequest) {
         let fullResult = '';
 
         // === AGENTIC MODE: V2 planner/orchestrator ===
-        if (agenticMode && quality !== 'kimi' && DEEP_ANALYSIS_PIPELINE_VERSION !== 'v1') {
+        if (agenticMode && DEEP_ANALYSIS_PIPELINE_VERSION !== 'v1') {
           let runId: string | null = null;
           let runFamily: 'reconstruct' | 'audit' | 'behavior' | null = null;
           let verificationScore: number | null = null;
@@ -600,7 +600,7 @@ export async function POST(request: NextRequest) {
         }
 
         // If authenticated, deduct credits and save analysis
-        if (isAuthenticated && userId && !(agenticMode && quality !== 'kimi' && DEEP_ANALYSIS_PIPELINE_VERSION !== 'v1')) {
+        if (isAuthenticated && userId && !(agenticMode && DEEP_ANALYSIS_PIPELINE_VERSION !== 'v1')) {
           const overview = extractOverview(fullResult);
           const code = fullResult;
           const cost = agenticMode ? AGENTIC_CREDIT_COSTS[quality] : CREDIT_COSTS[quality];
@@ -648,7 +648,7 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        if (!(agenticMode && quality !== 'kimi' && DEEP_ANALYSIS_PIPELINE_VERSION !== 'v1')) {
+        if (!(agenticMode && DEEP_ANALYSIS_PIPELINE_VERSION !== 'v1')) {
           await writer.write(
             encoder.encode(
               `data: ${JSON.stringify({ type: 'complete', data: fullResult })}\n\n`

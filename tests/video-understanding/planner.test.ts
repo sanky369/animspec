@@ -50,6 +50,27 @@ test('routes interaction state machine to the behavior family', () => {
   assert.equal(plan.stages[0]?.id, 'behavior_inventory');
 });
 
+test('chooses Kimi as the generator when quality is Kimi', () => {
+  const artifacts = buildSharedArtifactBundle({
+    videoMetadata: { duration: 4, width: 1280, height: 720, size: 1024, mimeType: 'video/mp4', name: 'kimi.mp4' },
+    triggerContext: 'click',
+    fileSize: 1024,
+    format: 'ui_ux_audit',
+    quality: 'kimi',
+  });
+
+  const plan = createPipelinePlan({
+    format: 'ui_ux_audit',
+    quality: 'kimi',
+    deepMode: true,
+    artifacts,
+    videoMetadata: { duration: 4, width: 1280, height: 720, size: 1024, mimeType: 'video/mp4', name: 'kimi.mp4' },
+  });
+
+  assert.equal(plan.generatorModel, 'kimi-k2.5');
+  assert.equal(plan.verifierModel, 'kimi-k2.5');
+});
+
 test('escalates reconstruct jobs with longer durations to non-simple complexity', () => {
   const artifacts = buildSharedArtifactBundle({
     videoMetadata: { duration: 18, width: 1440, height: 900, size: 1024, mimeType: 'video/mp4', name: 'long.mp4' },
