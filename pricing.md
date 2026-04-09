@@ -24,7 +24,7 @@ AnimSpec.ai uses a **credits-based pricing model** where users purchase one-time
 |-------|------------|-------------|----------|
 | Gemini 2.5 Flash | $0.30 | $2.50 | Fast quality |
 | Gemini 3 Flash Preview | $0.50 | $3.00 | Balanced quality |
-| Gemini 3 Pro Preview | $2.00 | $12.00 | Precise quality |
+| Gemini 3.1 Pro Preview | $2.00 | $12.00 | Precise quality |
 
 ### Gemini Files API
 
@@ -60,7 +60,7 @@ Based on a typical 30-second video analysis:
 |---------|-------|--------------|---------------|------------|-------------|----------------|
 | Fast | Gemini 2.5 Flash | ~9,090 | 3,072 | $0.003 | $0.008 | **$0.011** |
 | Balanced | Gemini 3 Flash | ~9,090 | 8,192 | $0.005 | $0.025 | **$0.030** |
-| Precise | Gemini 3 Pro | ~9,090 | 16,384 | $0.018 | $0.197 | **$0.215** |
+| Precise | Gemini 3.1 Pro | ~9,090 | 16,384 | $0.018 | $0.197 | **$0.215** |
 
 ---
 
@@ -225,7 +225,7 @@ async function checkCredits(userId: string, quality: QualityLevel) {
 - Credits never expire
 - Bulk discounts up to 18% off
 - All output formats included
-- Unlocks Precise mode (Gemini 3 Pro)
+- Unlocks Precise mode (Gemini 3.1 Pro)
 
 ### FAQ
 
@@ -242,7 +242,7 @@ A: Fast is great for quick prototypes. Balanced offers the best value with deepe
 A: Yes! New users get 20 free credits to try the service. Note: Precise mode is locked until you purchase any credit pack.
 
 **Q: Why is Precise mode locked for free users?**
-A: Precise mode uses Gemini 3 Pro, which costs significantly more per analysis (20 credits vs 1-3 for other modes). We unlock it for paying customers to ensure sustainable service.
+A: Precise mode uses Gemini 3.1 Pro, which costs significantly more per analysis (20 credits vs 1-3 for other modes). We unlock it for paying customers to ensure sustainable service.
 
 ---
 

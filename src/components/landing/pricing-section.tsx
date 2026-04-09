@@ -114,7 +114,7 @@ export function PricingSection() {
               </li>
               <li>
                 <CheckIcon className="w-4 h-4" />
-                <span>Unlock Precise mode (Gemini 3 Pro)</span>
+                <span>Unlock Precise mode (Gemini 3.1 Pro)</span>
               </li>
               <li>
                 <CheckIcon className="w-4 h-4" />
@@ -156,7 +156,7 @@ export function PricingSection() {
               <ZapIcon className="w-4 h-4" />
               Precise
             </span>
-            <span className="credits-model">Gemini 3 Pro</span>
+            <span className="credits-model">Gemini 3.1 Pro</span>
             <span className="credits-cost">{CREDIT_COSTS.precise} credits</span>
           </div>
         </div>

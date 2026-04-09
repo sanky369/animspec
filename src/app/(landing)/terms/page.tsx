@@ -63,7 +63,7 @@ export default function TermsOfServicePage() {
             <ul>
               <li><strong>Fast (Gemini 2.5 Flash):</strong> 1 credit per analysis</li>
               <li><strong>Balanced (Gemini 3 Flash):</strong> 3 credits per analysis</li>
-              <li><strong>Precise (Gemini 3 Pro):</strong> 20 credits per analysis</li>
+              <li><strong>Precise (Gemini 3.1 Pro):</strong> 20 credits per analysis</li>
             </ul>
 
             <h3>4.2 Free Credits</h3>

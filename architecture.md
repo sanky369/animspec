@@ -131,7 +131,7 @@ AnimSpec.ai solves the problem that AI coding agents cannot process video inputs
 | Quality Level | Model | Max Tokens | Temperature | Thinking |
 |---------------|-------|------------|-------------|----------|
 | `balanced` | `gemini-3-flash-preview` | 8,192 | 0.2 | High |
-| `precise` | `gemini-3-pro-preview` | 16,384 | 0.1 | High |
+| `precise` | `gemini-3.1-pro-preview` | 16,384 | 0.1 | High |
 
 Both models use Gemini 3's thinking mode (`thinkingLevel: 'high'`) for deeper reasoning about animation patterns, timing, and spatial relationships.
 
@@ -155,8 +155,8 @@ The agentic pipeline uses different models per pass to optimize cost and quality
 | Pass | Name | Model (Balanced) | Model (Precise) | Purpose |
 |------|------|-------------------|------------------|---------|
 | 1 | Scene Decomposition | `gemini-3-flash-preview` | `gemini-3-flash-preview` | Identify all animated elements, initial/final states |
-| 2 | Deep Motion Analysis | `gemini-3-flash-preview` | `gemini-3-pro-preview` | Analyze timing, easing, subtle movements |
-| 3 | Code Generation | `gemini-3-flash-preview` | `gemini-3-pro-preview` | Generate implementation code in chosen format |
+| 2 | Deep Motion Analysis | `gemini-3-flash-preview` | `gemini-3.1-pro-preview` | Analyze timing, easing, subtle movements |
+| 3 | Code Generation | `gemini-3-flash-preview` | `gemini-3.1-pro-preview` | Generate implementation code in chosen format |
 | 4 | Self-Verification | `gemini-3-flash-preview` | `gemini-3-flash-preview` | Compare output against original video, score 0-100 |
 
 Each pass streams results via SSE with `pass_start`, `thinking`, `chunk`, and `pass_complete` events. Previous pass outputs are fed as context into subsequent passes.

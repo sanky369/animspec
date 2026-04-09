@@ -10,6 +10,7 @@ import type {
   OutputFormat,
 } from '@/types/analysis';
 import { parseAnalysisOutput, extractVerificationReport } from '@/lib/ai/output-parsers';
+import { shouldUseGeminiFilesUpload } from '@/lib/ai/gemini-utils';
 import { extractFrameFromVideo } from '@/lib/video/extract-frame';
 import { extractFrames } from '@/lib/ffmpeg/extract-frames';
 import { createFrameGrid } from '@/lib/ffmpeg/create-grid';
@@ -181,12 +182,17 @@ export function useAnalysis(): UseAnalysisReturn {
         }
 
         const isKimi = config.quality === 'kimi';
+        const useGeminiFilesUpload = shouldUseGeminiFilesUpload({
+          quality: config.quality,
+          fileSize: file.size,
+          agenticMode: config.agenticMode,
+          hasAnalysisImages: !!frameGrid,
+        });
         
-        // For files >4MB, need to bypass Vercel's body limit
-        // Gemini: use Gemini Files API (native support up to 100MB)
-        // Kimi: use R2 → server fetches → base64
-        if (file.size > VERCEL_BODY_LIMIT && !isKimi) {
-          // Gemini Files API path
+        // Large Gemini inline payloads can fail upstream even when they fit through Vercel.
+        // Route Gemini through Files API for agentic runs, keyframe-assisted runs, or larger uploads.
+        // Kimi still uses inline/R2 because it doesn't support Gemini Files.
+        if (useGeminiFilesUpload) {
           setProgress({ step: 'uploading', message: 'Uploading video to Gemini...' });
 
           const uploadFormData = new FormData();
@@ -198,7 +204,7 @@ export function useAnalysis(): UseAnalysisReturn {
           });
 
           if (!uploadResponse.ok) {
-            const errorData = await uploadResponse.json();
+            const errorData = await uploadResponse.json().catch(() => ({ error: 'Upload failed' }));
             throw new Error(errorData.error || 'Upload failed');
           }
 

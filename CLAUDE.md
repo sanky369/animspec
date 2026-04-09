@@ -51,7 +51,7 @@ Stream response via SSE → Parse output → Display in tabs
 
 - `fast`: gemini-2.5-flash (3K tokens, temp 0.4)
 - `balanced`: gemini-3-flash-preview (8K tokens, temp 0.2, thinking: high)
-- `precise`: gemini-3-pro-preview (16K tokens, temp 0.1, thinking: high)
+- `precise`: gemini-3.1-pro-preview (16K tokens, temp 0.1, thinking: high)
 
 ### Output Formats
 

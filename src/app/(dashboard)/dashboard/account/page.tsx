@@ -131,7 +131,7 @@ export default function AccountPage() {
                 <span>Precise</span>
               </div>
               <div className="credit-usage-cost">{CREDIT_COSTS.precise} credits</div>
-              <div className="credit-usage-model">Gemini 3 Pro</div>
+              <div className="credit-usage-model">Gemini 3.1 Pro</div>
               {!profile?.isPaidUser && (
                 <div className="credit-usage-locked">Requires paid account</div>
               )}

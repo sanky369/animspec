@@ -80,7 +80,7 @@ export default function SettingsPage() {
             </div>
             {!profile?.isPaidUser && (
               <div className="settings-upgrade-hint">
-                <p>Upgrade to unlock Precise mode with Gemini 3 Pro</p>
+                <p>Upgrade to unlock Precise mode with Gemini 3.1 Pro</p>
                 <a href="/dashboard/account" className="btn-primary btn-sm">
                   Buy Credits
                 </a>

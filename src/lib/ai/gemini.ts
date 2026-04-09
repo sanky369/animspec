@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import type { OutputFormat, QualityLevel, TriggerContext, VideoMetadata } from '@/types/analysis';
 import { buildAnalysisPrompt, buildUserPrompt } from './prompts';
+import { normalizeGeminiError } from './gemini-utils';
 
 // Quality levels supported by Gemini
 export type GeminiQualityLevel = Exclude<QualityLevel, 'kimi'>;
@@ -8,7 +9,7 @@ export type GeminiQualityLevel = Exclude<QualityLevel, 'kimi'>;
 // Model mapping for Gemini quality levels
 const QUALITY_TO_MODEL: Record<GeminiQualityLevel, string> = {
   balanced: 'gemini-3-flash-preview',
-  precise: 'gemini-3-pro-preview',
+  precise: 'gemini-3.1-pro-preview',
 };
 
 // Inline base64 size limit (20MB)
@@ -107,7 +108,7 @@ export async function analyzeVideoWithGemini(
 
     return text;
   } catch (error) {
-    throw error;
+    throw normalizeGeminiError(error);
   }
 }
 
@@ -130,32 +131,36 @@ export async function analyzeVideoWithGeminiFile(
   const promptText = buildPromptWithImages(systemPrompt, userPrompt, analysisImages);
   const modelConfig = QUALITY_TO_CONFIG[quality];
 
-  const response = await client.models.generateContent({
-    model,
-    contents: [
-      {
-        role: 'user',
-        parts: buildParts(
-          {
-            fileData: {
-              mimeType: fileMimeType,
-              fileUri,
+  try {
+    const response = await client.models.generateContent({
+      model,
+      contents: [
+        {
+          role: 'user',
+          parts: buildParts(
+            {
+              fileData: {
+                mimeType: fileMimeType,
+                fileUri,
+              },
             },
-          },
-          promptText,
-          analysisImages
-        ),
-      },
-    ],
-    config: modelConfig,
-  });
+            promptText,
+            analysisImages
+          ),
+        },
+      ],
+      config: modelConfig,
+    });
 
-  const text = response.text;
-  if (!text) {
-    throw new Error('Empty response from Gemini');
+    const text = response.text;
+    if (!text) {
+      throw new Error('Empty response from Gemini');
+    }
+
+    return text;
+  } catch (error) {
+    throw normalizeGeminiError(error);
   }
-
-  return text;
 }
 
 // Streaming version for inline base64
@@ -177,31 +182,35 @@ export async function* analyzeVideoWithGeminiStream(
   const promptText = buildPromptWithImages(systemPrompt, userPrompt, analysisImages);
   const modelConfig = QUALITY_TO_CONFIG[quality];
 
-  const response = await client.models.generateContentStream({
-    model,
-    contents: [
-      {
-        role: 'user',
-        parts: buildParts(
-          {
-            inlineData: {
-              mimeType,
-              data: videoBase64,
+  try {
+    const response = await client.models.generateContentStream({
+      model,
+      contents: [
+        {
+          role: 'user',
+          parts: buildParts(
+            {
+              inlineData: {
+                mimeType,
+                data: videoBase64,
+              },
             },
-          },
-          promptText,
-          analysisImages
-        ),
-      },
-    ],
-    config: modelConfig,
-  });
+            promptText,
+            analysisImages
+          ),
+        },
+      ],
+      config: modelConfig,
+    });
 
-  for await (const chunk of response) {
-    const text = chunk.text;
-    if (text) {
-      yield text;
+    for await (const chunk of response) {
+      const text = chunk.text;
+      if (text) {
+        yield text;
+      }
     }
+  } catch (error) {
+    throw normalizeGeminiError(error);
   }
 }
 
@@ -224,31 +233,35 @@ export async function* analyzeVideoWithGeminiFileStream(
   const promptText = buildPromptWithImages(systemPrompt, userPrompt, analysisImages);
   const modelConfig = QUALITY_TO_CONFIG[quality];
 
-  const response = await client.models.generateContentStream({
-    model,
-    contents: [
-      {
-        role: 'user',
-        parts: buildParts(
-          {
-            fileData: {
-              mimeType: fileMimeType,
-              fileUri,
+  try {
+    const response = await client.models.generateContentStream({
+      model,
+      contents: [
+        {
+          role: 'user',
+          parts: buildParts(
+            {
+              fileData: {
+                mimeType: fileMimeType,
+                fileUri,
+              },
             },
-          },
-          promptText,
-          analysisImages
-        ),
-      },
-    ],
-    config: modelConfig,
-  });
+            promptText,
+            analysisImages
+          ),
+        },
+      ],
+      config: modelConfig,
+    });
 
-  for await (const chunk of response) {
-    const text = chunk.text;
-    if (text) {
-      yield text;
+    for await (const chunk of response) {
+      const text = chunk.text;
+      if (text) {
+        yield text;
+      }
     }
+  } catch (error) {
+    throw normalizeGeminiError(error);
   }
 }
 

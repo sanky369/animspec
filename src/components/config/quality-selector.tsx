@@ -13,7 +13,7 @@ interface QualitySelectorProps {
 
 const QUALITY_OPTIONS = [
   { id: 'balanced' as const, label: 'Good', model: 'Gemini 3 Flash' },
-  { id: 'precise' as const, label: 'Precise', model: 'Gemini 3 Pro' },
+  { id: 'precise' as const, label: 'Precise', model: 'Gemini 3.1 Pro' },
   { id: 'kimi' as const, label: 'Best for most cases', model: 'Kimi K2.5' },
 ];
 

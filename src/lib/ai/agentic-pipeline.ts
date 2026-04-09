@@ -2,6 +2,7 @@ import { GoogleGenAI } from '@google/genai';
 import type { OutputFormat, VideoMetadata, TriggerContext } from '@/types/analysis';
 import type { GeminiQualityLevel, AnalysisImage } from './gemini';
 import { buildPass1Prompt, buildPass2Prompt, buildPass3Prompt, buildPass4Prompt } from './agentic-prompts';
+import { normalizeGeminiError } from './gemini-utils';
 import { getFormatTemplate } from './prompts';
 
 export interface PipelineEvent {
@@ -40,7 +41,7 @@ const TOTAL_PASSES = 4;
 function getModelForPass(pass: number, quality: GeminiQualityLevel): string {
   if (quality === 'balanced') return 'gemini-3-flash-preview';
   // 'precise': pro for deep passes, flash for structural
-  return (pass === 2 || pass === 3) ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
+  return (pass === 2 || pass === 3) ? 'gemini-3.1-pro-preview' : 'gemini-3-flash-preview';
 }
 
 function getConfigForPass(pass: number): object {
@@ -195,52 +196,56 @@ async function* runPassWithModel(
 
   parts.push({ text: prompt });
 
-  const response = await client.models.generateContentStream({
-    model,
-    contents: [{ role: 'user', parts }],
-    config: getConfigForPass(passNumber),
-  });
+  try {
+    const response = await client.models.generateContentStream({
+      model,
+      contents: [{ role: 'user', parts }],
+      config: getConfigForPass(passNumber),
+    });
 
-  let fullResult = '';
+    let fullResult = '';
 
-  for await (const chunk of response) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const candidate = (chunk as any).candidates?.[0];
-    if (candidate?.content?.parts) {
-      for (const part of candidate.content.parts) {
-        if (part.thought && part.text) {
-          yield {
-            type: 'thinking',
-            pass: passNumber,
-            passName,
-            totalPasses: TOTAL_PASSES,
-            data: part.text,
-          };
-        } else if (part.text && !part.thought) {
-          fullResult += part.text;
+    for await (const chunk of response) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const candidate = (chunk as any).candidates?.[0];
+      if (candidate?.content?.parts) {
+        for (const part of candidate.content.parts) {
+          if (part.thought && part.text) {
+            yield {
+              type: 'thinking',
+              pass: passNumber,
+              passName,
+              totalPasses: TOTAL_PASSES,
+              data: part.text,
+            };
+          } else if (part.text && !part.thought) {
+            fullResult += part.text;
+            yield {
+              type: 'chunk',
+              pass: passNumber,
+              passName,
+              totalPasses: TOTAL_PASSES,
+              data: part.text,
+            };
+          }
+        }
+      } else {
+        const text = chunk.text;
+        if (text) {
+          fullResult += text;
           yield {
             type: 'chunk',
             pass: passNumber,
             passName,
             totalPasses: TOTAL_PASSES,
-            data: part.text,
+            data: text,
           };
         }
       }
-    } else {
-      const text = chunk.text;
-      if (text) {
-        fullResult += text;
-        yield {
-          type: 'chunk',
-          pass: passNumber,
-          passName,
-          totalPasses: TOTAL_PASSES,
-          data: text,
-        };
-      }
     }
-  }
 
-  return fullResult;
+    return fullResult;
+  } catch (error) {
+    throw normalizeGeminiError(error);
+  }
 }

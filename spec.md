@@ -36,7 +36,7 @@ AnimSpec.ai extracts frames from uploaded videos, analyzes motion patterns using
 │                                                                      │
 │  ┌──────────────┐    ┌──────────────┐    ┌───────────────────────┐  │
 │  │   FFmpeg     │    │  Frame Grid  │    │   AI Vision Model     │  │
-│  │   Frame      │ →  │  Composer    │ →  │   (gemini 3 Pro     │  │
+│  │   Frame      │ →  │  Composer    │ →  │   (Gemini 3.1 Pro     │  │
 │  │   Extraction │    │  (Montage)   │    │   or GPT-4o)          │  │
 │  └──────────────┘    └──────────────┘    └───────────────────────┘  │
 │                                                     │                │
@@ -173,8 +173,8 @@ def create_frame_grid(
 | Provider | Model | Model Code | Native Video | Best For |
 |----------|-------|------------|--------------|----------|
 | **Google** | Gemini 3 Flash | `gemini-3-flash-preview` | ✅ Yes | Fastest, balanced performance |
-| **Google** | Gemini 3 Pro | `gemini-3-pro` | ✅ Yes | Complex reasoning, highest quality |
-| **Google** | gemini 3 Pro | `gemini-2.5-pro` | ✅ Yes | Production stable, 1M context |
+| **Google** | Gemini 3.1 Pro | `gemini-3.1-pro` | ✅ Yes | Complex reasoning, highest quality |
+| **Google** | Gemini 3.1 Pro | `gemini-2.5-pro` | ✅ Yes | Production stable, 1M context |
 | **Google** | gemini 3 Flash | `gemini-2.5-flash` | ✅ Yes | Cost-effective, production ready |
 | **OpenAI** | GPT-5.2 | `gpt-5.2` | ❌ Frames only | Highest accuracy, reasoning |
 | **OpenAI** | gpt-5.2 | `gpt-5.2` | ❌ Frames only | Vision + cost balance |
@@ -186,7 +186,7 @@ def create_frame_grid(
 **Gemini Models (Native Video Support):**
 - **Gemini 3 Flash/Pro**: Latest series with advanced reasoning ("thinking" mode)
 - **gemini 3 Flash**: 1M token context, text/images/video/audio input
-- **gemini 3 Pro**: State-of-the-art thinking model, best for complex analysis
+- **Gemini 3.1 Pro**: State-of-the-art thinking model, best for complex analysis
 - **Knowledge cutoff**: January 2025
 - **Video processing**: Native support via File API or inline base64
 - **Custom FPS**: Supports `videoMetadata.fps` parameter (default 1 FPS)
@@ -534,7 +534,7 @@ Best for: Game development animations
 |-----------|-------|------|
 | Gemini 3 Flash (30s video) | `gemini-3-flash-preview` | ~$0.01 |
 | gemini 3 Flash (30s video) | `gemini-2.5-flash` | ~$0.02 |
-| gemini 3 Pro (30s video) | `gemini-2.5-pro` | ~$0.08 |
+| Gemini 3.1 Pro (30s video) | `gemini-2.5-pro` | ~$0.08 |
 | gpt-5.2 (grid + 3 frames, high detail) | `gpt-5.2` | ~$0.04 |
 | gpt-5.2 Mini (grid + 3 frames) | `gpt-5.2-mini` | ~$0.01 |
 | GPT-5.2 (grid + 3 frames) | `gpt-5.2` | ~$0.10 |

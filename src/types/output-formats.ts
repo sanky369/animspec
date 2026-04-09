@@ -154,7 +154,7 @@ export const QUALITY_OPTIONS: QualityOption[] = [
     id: 'precise',
     label: 'Precise',
     icon: '🧠',
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3.1-pro-preview',
     description: 'Flagship model, complex reasoning',
     estimatedCost: '~$0.08',
   },
