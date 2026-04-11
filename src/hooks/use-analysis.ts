@@ -20,6 +20,10 @@ import { createSseParser } from '@/lib/streaming/sse';
 // Gemini: files >4MB use Gemini Files API (supports up to 100MB)
 // Kimi: files >4MB use R2 → server fetches → base64
 const VERCEL_BODY_LIMIT = 4 * 1024 * 1024;
+// Kimi videos are sent to /api/analyze as base64 unless we use R2.
+// Base64 expands by ~33%, and Deep Analysis also sends a reference image, so keep this conservative.
+const KIMI_INLINE_SAFE_LIMIT = 2 * 1024 * 1024;
+const MAX_INLINE_REFERENCE_IMAGE_BASE64_LENGTH = 750 * 1024;
 const KEYFRAME_EXTRACTION_TIMEOUT_MS = 15000;
 const KEYFRAMES_ENABLED = process.env.NEXT_PUBLIC_DISABLE_KEYFRAMES !== 'true';
 
@@ -173,8 +177,11 @@ export function useAnalysis(): UseAnalysisReturn {
         if (config.triggerContext) {
           formData.append('triggerContext', config.triggerContext);
         }
-        if (frameImage) {
-          formData.append('framePreviewBase64', frameImage.replace(/^data:image\/\w+;base64,/, ''));
+        const framePreviewBase64 = frameImage?.replace(/^data:image\/\w+;base64,/, '');
+        if (framePreviewBase64 && framePreviewBase64.length <= MAX_INLINE_REFERENCE_IMAGE_BASE64_LENGTH) {
+          formData.append('framePreviewBase64', framePreviewBase64);
+        } else if (framePreviewBase64) {
+          console.warn('Skipping oversized reference frame for server upload:', framePreviewBase64.length);
         }
         if (config.agenticMode) {
           formData.append('agenticMode', 'true');
@@ -188,6 +195,7 @@ export function useAnalysis(): UseAnalysisReturn {
         }
 
         const isKimi = config.quality === 'kimi';
+        const useR2ForKimi = isKimi && file.size > KIMI_INLINE_SAFE_LIMIT;
         const useGeminiFilesUpload = shouldUseGeminiFilesUpload({
           quality: config.quality,
           fileSize: file.size,
@@ -218,9 +226,9 @@ export function useAnalysis(): UseAnalysisReturn {
 
           formData.append('fileUri', uploadResult.uri);
           formData.append('fileMimeType', uploadResult.mimeType);
-        } else if (file.size > VERCEL_BODY_LIMIT && isKimi) {
-          // R2 path for Kimi (needs base64)
-          // For medium files (4-20MB), use R2 to bypass Vercel body limit
+        } else if (useR2ForKimi) {
+          // R2 path for Kimi (server fetches and converts to base64 for Moonshot).
+          // Use a conservative threshold because base64 expansion + reference images can hit request limits.
           setProgress({ step: 'uploading', message: 'Uploading video...' });
 
           // Get presigned URL
@@ -240,9 +248,8 @@ export function useAnalysis(): UseAnalysisReturn {
 
           if (!urlResponse.ok) {
             const error = await urlResponse.json().catch(() => ({ error: 'Failed to get upload URL' }));
-            // Fall back to inline base64 if R2 not configured
             if (urlResponse.status === 503) {
-              throw new Error('File too large. Please use a video under 4MB or contact support.');
+              throw new Error('Cloud storage is required for this Kimi video size but is not configured.');
             }
             throw new Error(error.error || 'Failed to get upload URL');
           }
@@ -268,7 +275,7 @@ export function useAnalysis(): UseAnalysisReturn {
           formData.append('r2ObjectKey', objectKey);
           formData.append('r2MimeType', file.type);
         } else {
-          // For smaller files (<4MB), use inline base64
+          // For smaller files, use inline base64. Kimi uses a stricter threshold than Vercel's body limit.
           setProgress({ step: 'extracting', message: 'Processing video...' });
 
           const arrayBuffer = await file.arrayBuffer();
