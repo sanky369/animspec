@@ -2,6 +2,7 @@ import type { AnalysisResult, OutputFormat, VerificationReport } from '@/types/a
 
 const FULL_OUTPUT_FORMATS: OutputFormat[] = [
   'clone_ui_animation',
+  'copy_design_style',
   'extract_design_tokens',
   'remotion_demo_template',
   'qa_clone_checklist',

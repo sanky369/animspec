@@ -57,8 +57,8 @@ const USE_CASE_GROUPS: UseCaseGroup[] = [
     items: [
       {
         icon: CSSIcon,
-        title: 'Copy Design Style',
-        description: 'Apply any design aesthetic to your existing product',
+        title: 'Copy Design',
+        description: 'Extract the full UI/UX, colors, typography, and screen flow for rebuilds',
       },
       {
         icon: CSSIcon,

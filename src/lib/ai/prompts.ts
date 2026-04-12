@@ -380,188 +380,168 @@ Required structure:
 - [ ] [Specific detail to nail]`,
 
   copy_design_style: `
-## OUTPUT FORMAT: Apply This Design Style
+## OUTPUT FORMAT: Copy This Design
 
-Extract the complete design language so it can be applied to ANY existing product.
+Extract the complete product blueprint from the video so an external coding agent can rebuild it faithfully.
 
-**Goal:** Not cloning this UI — capturing its aesthetic DNA to transform other products.
+**Goal:** Capture the real UI/UX, visual system, component behavior, and screen-to-screen flow from the recording. This is not a loose moodboard or style transfer.
 
 Required structure:
 
-## Style DNA
-- **In 1 sentence:** [e.g., "Dark, glassy SaaS with subtle depth and snappy micro-interactions"]
-- **Mood:** [professional / playful / bold / minimal / luxurious / techy]
-- **Era/influence:** [e.g., "2024 AI-product aesthetic", "Apple-inspired minimal"]
+## Rebuild Summary
+- **In 1 sentence:** [What product/flow this appears to be]
+- **Primary job to be done:** [What the user is trying to accomplish]
+- **Design character:** [e.g., "clean B2B dashboard", "playful consumer onboarding", "high-contrast AI tool"]
+- **Rebuild priority:** [what must be preserved exactly vs what can be approximated]
 
-## What Makes This Style Distinctive
-1. [Key trait — e.g., "Layered glass surfaces with backdrop blur"]
-2. [Key trait — e.g., "Very subtle borders (1px at 5% opacity)"]
-3. [Key trait — e.g., "Spring animations with slight overshoot"]
-4. [Key trait]
-5. [Key trait]
+## Flow Overview
 
-## Information Flow & Layout Patterns
+**Observed flow:**
+[Summarize the complete journey seen in the video from first screen/state to last screen/state]
 
-**Overall page structure:**
-[Describe the top-to-bottom flow — e.g., "Full-width hero → constrained content sections → full-width CTA"]
+**Screen-to-screen map:**
+| Step | Screen / State | User intent | Entry trigger | Exit trigger | Notes for rebuild |
+|------|----------------|-------------|---------------|--------------|-------------------|
+| 1 | [screen/state] | [goal] | [how it appears] | [what moves to next step] | [important detail] |
+[Add every meaningful screen/state transition shown in the recording]
 
-**Content hierarchy pattern:**
-1. [First level — what comes first and how it's emphasized]
-2. [Second level — supporting content pattern]
-3. [Third level — details/secondary info treatment]
+**Flow logic:**
+- Start state: [what the user first sees]
+- Key transitions: [main transitions and why they happen]
+- End state: [where the flow lands]
+- Missing/off-screen assumptions: [state only if truly necessary]
 
-**Section rhythm:**
-- Section spacing: [X]px between major sections
-- Content width: [max-width or container pattern]
-- Alignment: [centered / left-aligned / asymmetric]
+## Screen Breakdown
 
-**Common layout blocks:**
-| Block Type | Layout Pattern | Key Characteristics |
-|------------|----------------|---------------------|
-| Hero | [e.g., "Centered, headline + subhead + CTA + visual"] | [notable details] |
-| Feature section | [e.g., "2-col grid, icon + title + description"] | [notable details] |
-| Social proof | [e.g., "Logo strip, single row, grayscale"] | [notable details] |
-| CTA | [e.g., "Centered, constrained width, strong contrast"] | [notable details] |
-[Add all recurring layout patterns]
+For **each** screen or major state in the video, provide:
 
-**Visual weight distribution:**
-[Describe how attention is guided — e.g., "Heavy top (large headline), light middle (breathing room), heavy bottom (CTA)"]
+### [Screen / State Name]
+- Purpose: [what this screen/state does]
+- Layout structure: [top-to-bottom or left-to-right breakdown]
+- Primary UI elements: [buttons, cards, nav, fields, modals, tabs, lists, charts, etc.]
+- Hierarchy: [what gets the most emphasis and how]
+- Interaction notes: [hover, click, focus, drag, loading, empty, success, error, etc.]
+- Responsive clues: [anything visible that hints at breakpoint behavior]
 
-**Whitespace philosophy:**
-[Generous/tight? How is breathing room created? Section padding patterns?]
+## Visual System
 
 ## Color System
-
-| Role | Value | How to use it |
-|------|-------|---------------|
+| Role | Value | Where it appears |
+|------|-------|------------------|
 | Background | #XXXXXX | App/page background |
-| Surface | #XXXXXX | Cards, modals, dropdowns |
-| Surface elevated | #XXXXXX | Hover states, tooltips |
-| Border | rgba(X,X,X,0.X) | Subtle dividers — note the opacity |
-| Text primary | #XXXXXX | Headings, important content |
-| Text secondary | #XXXXXX | Body, descriptions |
-| Text muted | #XXXXXX | Placeholders, hints |
-| Accent | #XXXXXX | CTAs, links, focus rings |
-| Accent hover | #XXXXXX | Hover/active states |
-| Success | #XXXXXX | |
-| Warning | #XXXXXX | |
-| Error | #XXXXXX | |
+| Surface | #XXXXXX | Cards, panels, sheets |
+| Surface elevated | #XXXXXX | Hover states, overlays, popovers |
+| Border / divider | rgba(X,X,X,0.X) | Lines, outlines, separators |
+| Text primary | #XXXXXX | Headlines, key content |
+| Text secondary | #XXXXXX | Supporting copy |
+| Text muted | #XXXXXX | Metadata, placeholders, hints |
+| Accent primary | #XXXXXX | Primary CTAs, active states |
+| Accent secondary | #XXXXXX | Secondary emphasis |
+| Success | #XXXXXX | Confirmations, positive states |
+| Warning | #XXXXXX | Warnings, caution states |
+| Error | #XXXXXX | Errors, destructive states |
+[List all meaningful colors used in the video]
 
 ## Typography
-
-| Role | Size | Weight | Line Height | Notes |
+| Role | Size | Weight | Line Height | Usage |
 |------|------|--------|-------------|-------|
+| Display / Hero | Xpx | X | X | |
 | H1 | Xpx | X | X | |
 | H2 | Xpx | X | X | |
 | H3 | Xpx | X | X | |
 | Body | Xpx | X | X | |
 | Small | Xpx | X | X | |
-| Caption | Xpx | X | X | |
+| Caption / Label | Xpx | X | X | |
 
-- Font family: [detected or suggested free alternative]
-- Letter spacing: [normal / tight / specific value]
-- Special treatment: [any unique text styling — gradients, shadows, etc.]
+- Font family: [detected or closest practical alternative]
+- Letter spacing: [normal / tight / value]
+- Text treatment: [uppercase labels, gradients, mono accents, etc.]
+- Hierarchy rules: [how emphasis is created]
 
-**Typography hierarchy pattern:**
-[How is hierarchy established? Size jumps? Weight contrast? Color differentiation?]
+## Spacing, Shape, and Depth
+- Container width pattern: [full-width / constrained / split layout / etc.]
+- Section rhythm: [spacing between major blocks]
+- Component spacing: [common gaps and padding]
+- Border radius scale: [tiny / small / medium / large]
+- Border treatment: [weight, opacity, style]
+- Shadow system: [low / medium / high exact values if visible]
+- Blur / glass / transparency treatment: [if present]
 
-## Shape Language
+## Component Patterns
+| Component | Structure | Visual traits | States shown | Rebuild notes |
+|-----------|-----------|---------------|--------------|---------------|
+| Button | [shape/content] | [fill, border, radius, shadow] | [default/hover/pressed/disabled] | [must-match details] |
+[Add every recurring component pattern visible in the video]
 
-**Border Radius**
-- Tiny (chips, badges): [X]px
-- Small (inputs, small buttons): [X]px
-- Medium (cards, buttons): [X]px
-- Large (modals, containers): [X]px
-- Pill: 9999px
+## Motion & Interaction Model
+- Default timing: [micro / component / page transition timings]
+- Default easing: \`cubic-bezier(X, X, X, X)\`
+- Hover behavior: [what changes]
+- Focus behavior: [rings, outlines, glow, fill shifts]
+- Entrance / exit behavior: [fade, slide, scale, stagger, etc.]
+- Loading / async behavior: [skeletons, spinners, button states, progress]
+- State transitions: [how screens/components change state]
+- Signature motion cues: [small but distinctive interaction details]
 
-**Borders**
-[Describe the border style — e.g., "1px solid rgba(255,255,255,0.1)" or "no borders, depth from shadows only"]
+## External Coding Agent Brief
 
-## Depth & Elevation
+### Build Order
+1. [What to build first]
+2. [What to build second]
+3. [What to build third]
+[Continue in sensible implementation order]
 
-**Shadows**
-- Low (hover lift): \`[exact box-shadow]\`
-- Medium (cards, dropdowns): \`[exact box-shadow]\`
-- High (modals, popovers): \`[exact box-shadow]\`
+### Non-Negotiables
+- [Pixel-critical detail]
+- [Flow-critical detail]
+- [Typography/color-critical detail]
+- [Interaction-critical detail]
 
-**Glass/Blur effects**
-[If present: backdrop-filter values, background opacity]
+### Safe Approximations
+- [What can be approximated if the video is ambiguous]
 
-## Motion & Animation
-
-**Default timing**
-- Micro-interactions: [X]ms
-- Component transitions: [X]ms
-- Page transitions: [X]ms
-
-**Default easing:** \`cubic-bezier(X, X, X, X)\`
-[Describe the feel: snappy? smooth? bouncy?]
-
-**Hover patterns**
-[What typically happens on hover — lift, glow, color shift, scale?]
-
-**Entrance/exit patterns**
-[How elements appear and disappear]
-
-**Scroll-triggered patterns**
-[If visible: how elements animate on scroll — fade up, stagger, parallax?]
-
-**Signature animations**
-[Any distinctive motion patterns unique to this style]
+### Recommended Deliverables
+- Screen inventory
+- Shared design tokens
+- Reusable component library
+- Flow/state map
+- Final rebuilt screens/pages
 
 ## Implementation Kit
 
-### Tailwind Config
+### CSS Variables
+\`\`\`css
+:root {
+  /* Complete variable set for the rebuilt product */
+}
+\`\`\`
+
+### Tailwind Theme Extension
 \`\`\`javascript
-// Add to tailwind.config.js
 module.exports = {
   theme: {
     extend: {
-      colors: {
-        // All color tokens
-      },
-      boxShadow: {
-        // All shadow tokens
-      },
-      borderRadius: {
-        // Radius tokens
-      },
-      // etc.
+      colors: {},
+      fontFamily: {},
+      boxShadow: {},
+      borderRadius: {},
+      spacing: {},
     },
   },
 }
 \`\`\`
 
-### CSS Variables
-\`\`\`css
-:root {
-  /* Complete variable set */
-}
-\`\`\`
-
-### Layout Utilities
-\`\`\`css
-/* Common layout patterns from this style */
-.section { /* section spacing */ }
-.container { /* content width constraints */ }
-/* etc. */
-\`\`\`
-
-## Style Transfer Checklist
-When applying this style to your product:
-- [ ] Restructure your page flow to match this information hierarchy
-- [ ] Apply the section spacing and whitespace rhythm
-- [ ] Replace your background color with this surface hierarchy
-- [ ] Update your border treatment to match (thinner? more transparent?)
-- [ ] Adjust your shadows to create this depth level
-- [ ] Apply the border-radius scale consistently
-- [ ] Update hover states to match this pattern
-- [ ] Match the animation timing and easing
-- [ ] Adopt the typography hierarchy pattern
-- [ ] [Other specific transformations]
+### Rebuild Checklist
+- [ ] Match the complete screen order and transition logic
+- [ ] Match the color hierarchy and contrast treatment
+- [ ] Match typography scale, weights, and label styles
+- [ ] Match layout spacing, container widths, and alignment patterns
+- [ ] Match recurring component shapes and states
+- [ ] Match hover, focus, loading, and transition behavior
+- [ ] Preserve the overall product feel, not just isolated screens
 
 ## The Subtle Details
-[List 5-8 small touches that make this style feel polished — the things most people miss]`,
+[List 5-10 small but important details the coding agent must not miss]`,
 
   extract_design_tokens: `
 ## OUTPUT FORMAT: Design Tokens

@@ -36,11 +36,11 @@ export const FORMAT_OPTIONS: FormatOption[] = [
   },
   {
     id: 'copy_design_style',
-    label: 'Copy Design Style',
+    label: 'Copy Design',
     icon: '🪄',
     language: 'markdown',
-    description: 'Agent instructions to apply this design style to YOUR existing product',
-    bestFor: 'Redesigning your app, adopting a new aesthetic, style refresh',
+    description: 'Agent instructions to rebuild the full UI/UX, visual system, and screen flow from a video',
+    bestFor: 'Recreating product flows, design systems, and multi-screen UI from recordings',
   },
   {
     id: 'extract_design_tokens',

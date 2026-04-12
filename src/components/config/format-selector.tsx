@@ -54,9 +54,9 @@ const FORMAT_OPTIONS: FormatOption[] = [
   // Extract — design assets & specs
   {
     id: 'copy_design_style',
-    label: 'Copy Design Style',
+    label: 'Copy Design',
     icon: CSSIcon,
-    useCase: 'Apply this design aesthetic to YOUR existing product',
+    useCase: 'Extract the full UI/UX, visual system, and screen flow so an external coding agent can rebuild it',
     group: 'extract',
   },
   {

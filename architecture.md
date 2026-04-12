@@ -245,7 +245,7 @@ Handle payment webhooks (`order.created`, `order.refunded`, `subscription.paymen
 ### Extract Group — Design Assets & Specs
 | Format | Description | Best For |
 |--------|-------------|----------|
-| `copy_design_style` | CSS style guide for reuse across products | Redesigning your app, style refresh |
+| `copy_design_style` | Full UI/UX reconstruction brief with visual system and flow map | Rebuilding a recorded product or journey with an external coding agent |
 | `extract_design_tokens` | Colors, typography, spacing, shadows | Design systems, theming, consistent UI |
 | `figma_motion_spec` | Figma Smart Animate properties & prototype interactions | Figma prototypes, designer-developer handoff |
 

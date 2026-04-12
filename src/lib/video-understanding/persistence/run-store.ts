@@ -7,6 +7,10 @@ import { COLLECTIONS } from '@/types/database';
 
 const INLINE_LIMIT = 120_000;
 
+export function toFirestoreSafePayload(payload: unknown): unknown {
+  return JSON.parse(JSON.stringify(payload));
+}
+
 export async function createAnalysisRunRecord(input: {
   runId: string;
   userId: string | null;
@@ -83,6 +87,7 @@ async function persistArtifactDocument(
   summary: string
 ): Promise<void> {
   const serialized = JSON.stringify(payload);
+  const firestoreSafePayload = toFirestoreSafePayload(payload);
   const base = {
     type,
     summary,
@@ -94,21 +99,33 @@ async function persistArtifactDocument(
     await coll.doc(docId).set({
       ...base,
       storagePath: null,
-      payload,
+      payload: firestoreSafePayload,
     });
     return;
   }
 
   const storagePath = `analysis-runs/${runId}/${docId}.json`;
-  const bucket = adminStorage.bucket();
-  const file = bucket.file(storagePath);
-  await file.save(serialized, {
-    contentType: 'application/json',
-    resumable: false,
-  });
-  await coll.doc(docId).set({
-    ...base,
-    payload: null,
-    storagePath,
-  });
+  try {
+    const bucket = adminStorage.bucket();
+    const file = bucket.file(storagePath);
+    await file.save(serialized, {
+      contentType: 'application/json',
+      resumable: false,
+    });
+    await coll.doc(docId).set({
+      ...base,
+      payload: null,
+      storagePath,
+    });
+  } catch (error) {
+    console.error(`Failed to persist oversized artifact ${docId} to storage:`, error);
+    await coll.doc(docId).set({
+      ...base,
+      payload: null,
+      storagePath: null,
+      storageError: error instanceof Error ? error.message : 'Failed to persist oversized artifact',
+      payloadPreview: serialized.slice(0, INLINE_LIMIT),
+      payloadTruncated: true,
+    });
+  }
 }

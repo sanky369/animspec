@@ -18,7 +18,7 @@ const jsonLd = {
   },
   featureList: [
     'Clone UI animations from video',
-    'Extract design tokens and styles',
+    'Copy full UI/UX design systems and flows from video',
     'Generate Tailwind animate configs',
     'Export to React Native Reanimated',
     'Generate Lottie/Rive specifications',

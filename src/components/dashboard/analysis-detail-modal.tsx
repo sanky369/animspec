@@ -39,7 +39,7 @@ function getFormatLabel(format: string): string {
     case 'clone_landing_page': return 'Landing Page';
     case 'extract_design_tokens': return 'Style & Tokens';
     case 'remotion_demo_template': return 'Remotion Template';
-    case 'copy_design_style': return 'Design Style';
+    case 'copy_design_style': return 'Copy Design';
     case 'qa_clone_checklist': return 'QA Checklist';
     case 'accessibility_audit': return 'A11y Audit';
     case 'ui_ux_audit': return 'UI/UX Audit';

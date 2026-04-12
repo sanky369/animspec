@@ -28,6 +28,10 @@ function isKimiModel(model: string): boolean {
   return model.startsWith('kimi');
 }
 
+export function resolveKimiTemperature(): number {
+  return 1.0;
+}
+
 export function createGeminiClient(apiKey: string): GoogleGenAI {
   return new GoogleGenAI({ apiKey });
 }
@@ -112,14 +116,13 @@ export async function streamText(
 
 export async function generateJson<T>(options: GenerateJsonOptions<T>): Promise<T> {
   if (isKimiModel(options.model)) {
-    const jsonPrompt = `${options.prompt}\n\nReturn valid JSON only. No markdown fences. No prose before or after the JSON.`;
+    const jsonPrompt = buildJsonOnlyPrompt(options.prompt, options.schema);
     const text = await generateTextWithKimi({
       ...options,
       prompt: jsonPrompt,
-      temperature: 0.1,
+      temperature: resolveKimiTemperature(),
     });
-    const parsed = parseJsonFromText<unknown>(text);
-    return options.validate(parsed);
+    return parseAndValidateJson(text, options.validate);
   }
 
   try {
@@ -135,9 +138,22 @@ export async function generateJson<T>(options: GenerateJsonOptions<T>): Promise<
         responseJsonSchema: options.schema,
       },
     });
-    const parsed = parseJsonFromText<unknown>(response.text || '');
-    return options.validate(parsed);
+    return parseAndValidateJson(response.text || '', options.validate);
   } catch (error) {
+    if (shouldRetryStructuredJson(error)) {
+      try {
+        const fallbackText = await generateText({
+          ...options,
+          prompt: buildJsonOnlyPrompt(options.prompt, options.schema),
+          temperature: 0.1,
+        });
+        return parseAndValidateJson(fallbackText, options.validate);
+      } catch (fallbackError) {
+        const primaryMessage = error instanceof Error ? error.message : 'unknown structured-output error';
+        const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : 'unknown fallback error';
+        throw new Error(`Gemini structured JSON failed: ${primaryMessage}. Fallback JSON retry failed: ${fallbackMessage}`);
+      }
+    }
     throw normalizeGeminiError(error);
   }
 }
@@ -206,10 +222,38 @@ function buildKimiRequest(options: GenerateBaseOptions) {
         content: buildKimiParts(options.video, options.artifacts, options.prompt),
       },
     ],
-    temperature: options.temperature ?? 1.0,
+    temperature: resolveKimiTemperature(),
     top_p: 0.95,
     max_tokens: options.maxOutputTokens ?? 8192,
   };
+}
+
+function parseAndValidateJson<T>(text: string, validate: (value: unknown) => T): T {
+  const parsed = parseJsonFromText<unknown>(text);
+  if (parsed === null) {
+    throw new Error('Model returned invalid JSON payload');
+  }
+  return validate(parsed);
+}
+
+function buildJsonOnlyPrompt(prompt: string, schema: unknown): string {
+  return `${prompt}
+
+Return valid JSON only.
+Do not return null.
+Do not wrap the response in markdown fences.
+Do not include commentary before or after the JSON.
+
+Required JSON schema:
+${JSON.stringify(schema, null, 2)}`;
+}
+
+function shouldRetryStructuredJson(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return /invalid json payload/i.test(error.message)
+    || /expected object/i.test(error.message)
+    || /received null/i.test(error.message)
+    || /invalid input/i.test(error.message);
 }
 
 function buildGeminiParts(video: VideoSourceRef, artifacts: SharedArtifactBundle, prompt: string) {

@@ -18,6 +18,12 @@ export function middleware(request: NextRequest) {
   // Check if trying to access protected route
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
   const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
+  const isLandingRoot = pathname === '/';
+
+  // If accessing landing root while authenticated, send them to the dashboard
+  if (isLandingRoot && authSession) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
 
   // If accessing protected route without auth, redirect to landing
   if (isProtectedRoute && !authSession) {
