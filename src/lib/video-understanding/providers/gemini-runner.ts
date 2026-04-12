@@ -12,6 +12,7 @@ interface GenerateBaseOptions {
   prompt: string;
   maxOutputTokens?: number;
   temperature?: number;
+  disableThinking?: boolean;
 }
 
 interface GenerateJsonOptions<T> extends GenerateBaseOptions {
@@ -28,9 +29,11 @@ function isKimiModel(model: string): boolean {
   return model.startsWith('kimi');
 }
 
-export function resolveKimiTemperature(): number {
-  return 1.0;
+export function resolveKimiTemperature(disableThinking: boolean = false): number {
+  return disableThinking ? 1.0 : 0.6;
 }
+
+const JSON_FALLBACK_MODEL = 'gemini-3-flash-preview';
 
 export function createGeminiClient(apiKey: string): GoogleGenAI {
   return new GoogleGenAI({ apiKey });
@@ -116,46 +119,18 @@ export async function streamText(
 
 export async function generateJson<T>(options: GenerateJsonOptions<T>): Promise<T> {
   if (isKimiModel(options.model)) {
-    const jsonPrompt = buildJsonOnlyPrompt(options.prompt, options.schema);
-    const text = await generateTextWithKimi({
-      ...options,
-      prompt: jsonPrompt,
-      temperature: resolveKimiTemperature(),
+    return generateJsonWithFallbacks(options, {
+      preferStructuredOutput: true,
+      disableThinkingForText: false,
+      forceModel: JSON_FALLBACK_MODEL,
     });
-    return parseAndValidateJson(text, options.validate);
   }
 
-  try {
-    const client = createGeminiClient(options.apiKey);
-    const response = await client.models.generateContent({
-      model: options.model,
-      contents: [{ role: 'user', parts: buildGeminiParts(options.video, options.artifacts, options.prompt) }],
-      config: {
-        maxOutputTokens: options.maxOutputTokens ?? 4096,
-        temperature: options.temperature ?? 0.1,
-        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
-        responseMimeType: 'application/json',
-        responseJsonSchema: options.schema,
-      },
-    });
-    return parseAndValidateJson(response.text || '', options.validate);
-  } catch (error) {
-    if (shouldRetryStructuredJson(error)) {
-      try {
-        const fallbackText = await generateText({
-          ...options,
-          prompt: buildJsonOnlyPrompt(options.prompt, options.schema),
-          temperature: 0.1,
-        });
-        return parseAndValidateJson(fallbackText, options.validate);
-      } catch (fallbackError) {
-        const primaryMessage = error instanceof Error ? error.message : 'unknown structured-output error';
-        const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : 'unknown fallback error';
-        throw new Error(`Gemini structured JSON failed: ${primaryMessage}. Fallback JSON retry failed: ${fallbackMessage}`);
-      }
-    }
-    throw normalizeGeminiError(error);
-  }
+  return generateJsonWithFallbacks(options, {
+    preferStructuredOutput: true,
+    disableThinkingForText: false,
+    forceModel: undefined,
+  });
 }
 
 async function generateTextWithKimi(options: GenerateBaseOptions): Promise<string> {
@@ -164,18 +139,31 @@ async function generateTextWithKimi(options: GenerateBaseOptions): Promise<strin
   }
 
   const client = createKimiClient();
-  const response = await client.chat.completions.create({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ...(buildKimiRequest(options) as any),
-  } as never);
+  let lastError: unknown = null;
 
-  const message = response.choices[0]?.message;
-  const text = (message as { content?: string; reasoning_content?: string } | undefined)?.content
-    || (message as { content?: string; reasoning_content?: string } | undefined)?.reasoning_content;
-  if (!text) {
-    throw new Error('Empty response from Kimi');
+  for (const temperature of getKimiTemperatureCandidates(options)) {
+    try {
+      const response = await client.chat.completions.create({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...(buildKimiRequest({ ...options, temperature }) as any),
+      } as never);
+
+      const message = response.choices[0]?.message;
+      const text = (message as { content?: string; reasoning_content?: string } | undefined)?.content
+        || (message as { content?: string; reasoning_content?: string } | undefined)?.reasoning_content;
+      if (!text) {
+        throw new Error('Empty response from Kimi');
+      }
+      return text;
+    } catch (error) {
+      lastError = error;
+      if (!isKimiTemperatureError(error)) {
+        throw error;
+      }
+    }
   }
-  return text;
+
+  throw lastError instanceof Error ? lastError : new Error('Kimi request failed');
 }
 
 async function streamTextWithKimi(
@@ -187,11 +175,28 @@ async function streamTextWithKimi(
   }
 
   const client = createKimiClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const stream = await (client.chat.completions.create as any)({
-    ...buildKimiRequest(options),
-    stream: true,
-  });
+  let stream: AsyncIterable<unknown> | null = null;
+  let lastError: unknown = null;
+
+  for (const temperature of getKimiTemperatureCandidates(options)) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      stream = await (client.chat.completions.create as any)({
+        ...buildKimiRequest({ ...options, temperature }),
+        stream: true,
+      });
+      break;
+    } catch (error) {
+      lastError = error;
+      if (!isKimiTemperatureError(error)) {
+        throw error;
+      }
+    }
+  }
+
+  if (!stream) {
+    throw lastError instanceof Error ? lastError : new Error('Kimi stream request failed');
+  }
 
   let full = '';
   for await (const chunk of stream) {
@@ -214,7 +219,7 @@ async function streamTextWithKimi(
 }
 
 function buildKimiRequest(options: GenerateBaseOptions) {
-  return {
+  const request = {
     model: options.model,
     messages: [
       {
@@ -222,10 +227,28 @@ function buildKimiRequest(options: GenerateBaseOptions) {
         content: buildKimiParts(options.video, options.artifacts, options.prompt),
       },
     ],
-    temperature: resolveKimiTemperature(),
+    temperature: options.temperature ?? resolveKimiTemperature(options.disableThinking),
     top_p: 0.95,
     max_tokens: options.maxOutputTokens ?? 8192,
   };
+
+  if (options.disableThinking) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (request as any).thinking = { type: 'disabled' };
+  }
+
+  return request;
+}
+
+function getKimiTemperatureCandidates(options: GenerateBaseOptions): number[] {
+  const preferred = options.temperature ?? resolveKimiTemperature(options.disableThinking);
+  const alternate = preferred === 1.0 ? 0.6 : 1.0;
+  return [...new Set([preferred, alternate])];
+}
+
+function isKimiTemperatureError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /invalid temperature/i.test(message) && /only (0\.6|1)/i.test(message);
 }
 
 function parseAndValidateJson<T>(text: string, validate: (value: unknown) => T): T {
@@ -254,6 +277,95 @@ function shouldRetryStructuredJson(error: unknown): boolean {
     || /expected object/i.test(error.message)
     || /received null/i.test(error.message)
     || /invalid input/i.test(error.message);
+}
+
+async function generateJsonWithFallbacks<T>(
+  options: GenerateJsonOptions<T>,
+  behavior: {
+    preferStructuredOutput: boolean;
+    disableThinkingForText: boolean;
+    forceModel?: string;
+  }
+): Promise<T> {
+  const attempts: Array<() => Promise<T>> = [];
+  const seen = new Set<string>();
+  const errors: string[] = [];
+  const primaryModel = behavior.forceModel ?? options.model;
+
+  const addAttempt = (key: string, fn: () => Promise<T>) => {
+    if (seen.has(key)) return;
+    seen.add(key);
+    attempts.push(fn);
+  };
+
+  if (behavior.preferStructuredOutput && !isKimiModel(primaryModel)) {
+    addAttempt(`${primaryModel}:structured`, () => generateStructuredJsonWithGeminiModel(options, primaryModel));
+  }
+
+  addAttempt(`${primaryModel}:text-json`, () =>
+    generateJsonFromTextAttempt(options, primaryModel, behavior.disableThinkingForText)
+  );
+
+  if (primaryModel !== JSON_FALLBACK_MODEL) {
+    addAttempt(`${JSON_FALLBACK_MODEL}:structured`, () =>
+      generateStructuredJsonWithGeminiModel(options, JSON_FALLBACK_MODEL)
+    );
+    addAttempt(`${JSON_FALLBACK_MODEL}:text-json`, () =>
+      generateJsonFromTextAttempt(options, JSON_FALLBACK_MODEL, false)
+    );
+  }
+
+  for (const attempt of attempts) {
+    try {
+      return await attempt();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'unknown JSON generation failure';
+      errors.push(message);
+      if (!shouldRetryStructuredJson(error)) {
+        throw error instanceof Error ? error : new Error(message);
+      }
+    }
+  }
+
+  throw new Error(`Unable to generate valid JSON after ${errors.length} attempts. ${errors.join(' | ')}`);
+}
+
+async function generateStructuredJsonWithGeminiModel<T>(
+  options: GenerateJsonOptions<T>,
+  model: string
+): Promise<T> {
+  try {
+    const client = createGeminiClient(options.apiKey);
+    const response = await client.models.generateContent({
+      model,
+      contents: [{ role: 'user', parts: buildGeminiParts(options.video, options.artifacts, options.prompt) }],
+      config: {
+        maxOutputTokens: options.maxOutputTokens ?? 4096,
+        temperature: options.temperature ?? 0.1,
+        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+        responseMimeType: 'application/json',
+        responseJsonSchema: options.schema,
+      },
+    });
+    return parseAndValidateJson(response.text || '', options.validate);
+  } catch (error) {
+    throw normalizeGeminiError(error);
+  }
+}
+
+async function generateJsonFromTextAttempt<T>(
+  options: GenerateJsonOptions<T>,
+  model: string,
+  disableThinking: boolean
+): Promise<T> {
+  const text = await generateText({
+    ...options,
+    model,
+      prompt: buildJsonOnlyPrompt(options.prompt, options.schema),
+      temperature: isKimiModel(model) ? resolveKimiTemperature(disableThinking) : 0.1,
+      disableThinking,
+  });
+  return parseAndValidateJson(text, options.validate);
 }
 
 function buildGeminiParts(video: VideoSourceRef, artifacts: SharedArtifactBundle, prompt: string) {
