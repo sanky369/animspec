@@ -74,18 +74,11 @@ async function handleMcpRequest(request: Request): Promise<Response> {
   const server = createAnimSpecMcpServer();
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
+    enableJsonResponse: true,
   });
 
   await server.connect(transport);
-
-  try {
-    return await transport.handleRequest(request, {
-      authInfo,
-    });
-  } finally {
-    await server.close().catch(() => {});
-    await transport.close().catch(() => {});
-  }
+  return transport.handleRequest(request, { authInfo });
 }
 
 export async function GET(request: Request) {

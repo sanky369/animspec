@@ -8,6 +8,7 @@ test('public OAuth clients omit client_secret fields in registration response', 
   const response = buildClientRegistrationResponse('https://www.animspec.com', {
     clientId: 'client_123',
     clientSecret: null,
+    createdByUserId: null,
     clientName: 'ChatGPT',
     redirectUris: ['https://chatgpt.com/callback'],
     tokenEndpointAuthMethod: 'none',
