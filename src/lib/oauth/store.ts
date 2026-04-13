@@ -12,6 +12,7 @@ import {
 export interface RegisteredOAuthClient {
   clientId: string;
   clientSecret: string | null;
+  createdByUserId: string | null;
   clientName: string | null;
   redirectUris: string[];
   tokenEndpointAuthMethod: 'none' | 'client_secret_post' | 'client_secret_basic';
@@ -22,6 +23,7 @@ export interface RegisteredOAuthClient {
 
 export interface OAuthClientRecord {
   clientId: string;
+  createdByUserId: string | null;
   clientName: string | null;
   redirectUris: string[];
   tokenEndpointAuthMethod: 'none' | 'client_secret_post' | 'client_secret_basic';
@@ -43,6 +45,7 @@ function now() {
 }
 
 export async function registerOAuthClient(input: {
+  createdByUserId?: string | null;
   clientName?: string | null;
   redirectUris: string[];
   tokenEndpointAuthMethod?: 'none' | 'client_secret_post' | 'client_secret_basic';
@@ -55,6 +58,7 @@ export async function registerOAuthClient(input: {
   const clientSecret = tokenEndpointAuthMethod === 'none' ? null : generateOpaqueSecret('secret_');
 
   await adminDb.collection(COLLECTIONS.OAUTH_CLIENTS).doc(clientId).set({
+    createdByUserId: input.createdByUserId ?? null,
     clientName: input.clientName ?? null,
     redirectUris: input.redirectUris,
     tokenEndpointAuthMethod,
@@ -69,6 +73,7 @@ export async function registerOAuthClient(input: {
   return {
     clientId,
     clientSecret,
+    createdByUserId: input.createdByUserId ?? null,
     clientName: input.clientName ?? null,
     redirectUris: input.redirectUris,
     tokenEndpointAuthMethod,
@@ -91,6 +96,7 @@ export async function getOAuthClient(clientId: string): Promise<OAuthClientRecor
 
   return {
     clientId: doc.id,
+    createdByUserId: (data.createdByUserId as string | null) ?? null,
     clientName: (data.clientName as string | null) ?? null,
     redirectUris: Array.isArray(data.redirectUris) ? data.redirectUris as string[] : [],
     tokenEndpointAuthMethod: (data.tokenEndpointAuthMethod as OAuthClientRecord['tokenEndpointAuthMethod']) ?? 'none',
@@ -99,6 +105,30 @@ export async function getOAuthClient(clientId: string): Promise<OAuthClientRecor
     scope: (data.scope as string) || OAUTH_SCOPE,
     secretHash: (data.secretHash as string | null) ?? null,
   };
+}
+
+export async function listOAuthClientsForUser(userId: string): Promise<OAuthClientRecord[]> {
+  const snapshot = await adminDb
+    .collection(COLLECTIONS.OAUTH_CLIENTS)
+    .where('createdByUserId', '==', userId)
+    .get();
+
+  const clients = snapshot.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      clientId: doc.id,
+      createdByUserId: (data.createdByUserId as string | null) ?? null,
+      clientName: (data.clientName as string | null) ?? null,
+      redirectUris: Array.isArray(data.redirectUris) ? data.redirectUris as string[] : [],
+      tokenEndpointAuthMethod: (data.tokenEndpointAuthMethod as OAuthClientRecord['tokenEndpointAuthMethod']) ?? 'none',
+      grantTypes: Array.isArray(data.grantTypes) ? data.grantTypes as string[] : ['authorization_code', 'refresh_token'],
+      responseTypes: Array.isArray(data.responseTypes) ? data.responseTypes as string[] : ['code'],
+      scope: (data.scope as string) || OAUTH_SCOPE,
+      secretHash: (data.secretHash as string | null) ?? null,
+    };
+  });
+
+  return clients.sort((left, right) => left.clientId.localeCompare(right.clientId)).reverse();
 }
 
 export async function createAuthorizationCode(input: {

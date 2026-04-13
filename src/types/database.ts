@@ -106,6 +106,7 @@ export interface ApiKeyRecord {
 
 export interface OAuthClientRecord {
   id: string;
+  createdByUserId: string | null;
   clientName: string | null;
   redirectUris: string[];
   tokenEndpointAuthMethod: 'none' | 'client_secret_post' | 'client_secret_basic';

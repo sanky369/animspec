@@ -6,6 +6,7 @@ import { DashboardHeader } from '@/components/dashboard';
 import { UserIcon } from '@/components/ui/icons';
 import { ApiKeyManager } from '@/components/settings/api-key-manager';
 import { ConnectionGuide } from '@/components/settings/connection-guide';
+import { OAuthClientManager } from '@/components/settings/oauth-client-manager';
 
 export default function SettingsPage() {
   const { user, profile } = useAuth();
@@ -92,6 +93,8 @@ export default function SettingsPage() {
         </div>
 
         <ApiKeyManager />
+
+        <OAuthClientManager />
 
         <ConnectionGuide />
 

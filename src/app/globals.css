@@ -4089,11 +4089,45 @@ select:focus {
   background: rgba(74, 222, 128, 0.04);
 }
 
+.oauth-client-created {
+  background: rgba(245, 158, 11, 0.05);
+}
+
 .api-key-secret-row {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   margin-top: var(--space-4);
+}
+
+.oauth-client-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.oauth-client-created-grid {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.oauth-client-secret-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.oauth-client-secret-row code {
+  flex: 1;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-default);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  color: var(--text-primary);
+  overflow-x: auto;
 }
 
 .api-key-secret {
@@ -4327,11 +4361,13 @@ select:focus {
 
 @media (max-width: 768px) {
   .api-key-create,
+  .oauth-client-form,
   .connection-guide-grid {
     grid-template-columns: 1fr;
   }
 
   .api-key-secret-row,
+  .oauth-client-secret-row,
   .api-key-item,
   .api-key-item-actions {
     flex-direction: column;
