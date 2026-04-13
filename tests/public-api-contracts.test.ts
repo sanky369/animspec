@@ -51,3 +51,16 @@ test('parsePublicAnalyzeRequest accepts legacy agenticMode alias', () => {
   assert.equal(request.deepAnalysis, true);
   assert.equal(request.source.kind, 'inline_base64');
 });
+
+test('parsePublicAnalyzeRequest accepts generic videoUri sources for hosted attachment handoff', () => {
+  const request = parsePublicAnalyzeRequest({
+    format: 'ui_ux_audit',
+    quality: 'balanced',
+    videoUri: 'data:video/mp4;base64,YWJjZA==',
+    mimeType: 'video/mp4',
+    fileName: 'upload.mp4',
+  });
+
+  assert.equal(request.source.kind, 'video_uri');
+  assert.equal(request.source.videoUri.startsWith('data:video/mp4;base64,'), true);
+});

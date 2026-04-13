@@ -132,18 +132,19 @@ export function createAnimSpecMcpServer() {
     {
       title: 'Analyze video',
       description:
-        'Analyze a UI video and return a rebuild, audit, or behavior output. You can pass an explicit format or a user_goal and let AnimSpec infer the right use case first.',
+        'Analyze a UI video and return a rebuild, audit, or behavior output. You can pass an explicit format or a user_goal and let AnimSpec infer the right use case first. If the user attached a video in ChatGPT, pass the attachment URI in video_uri. Quality mapping: balanced = Gemini 3 Flash, precise = Gemini 3.1 Pro, kimi = Kimi K2.5.',
       inputSchema: {
+        video_uri: z.string().optional().describe('Generic video URI for attached files or remote resources. Prefer this for ChatGPT/hosted attachment handoff. Supports https URLs and data URIs when the host provides them.'),
         video_url: z.string().url().optional().describe('Publicly fetchable HTTP(S) video URL'),
         video_base64: z.string().optional().describe('Base64-encoded video payload'),
-        mime_type: z.string().optional().describe('Required with video_base64; optional with video_url'),
+        mime_type: z.string().optional().describe('Required with video_base64; optional with video_uri or video_url'),
         file_uri: z.string().optional().describe('Gemini Files URI from /api/v1/upload'),
         file_mime_type: z.string().optional().describe('Required with file_uri'),
         r2_object_key: z.string().optional().describe('R2 object key returned by /api/v1/upload-url'),
         file_name: z.string().optional().describe('Optional file name for history and logs'),
         format: z.string().optional().describe('AnimSpec output format. Explicit format wins when present.'),
         user_goal: z.string().optional().describe('Natural-language goal; used to infer the best format when format is omitted'),
-        quality: z.string().optional().describe('balanced, precise, or kimi'),
+        quality: z.string().optional().describe('balanced (Gemini 3 Flash), precise (Gemini 3.1 Pro), or kimi (Kimi K2.5)'),
         trigger: z.string().optional().describe('hover, click, scroll, load, loop, or focus'),
         deep_analysis: z.boolean().optional().describe('Enable the multi-stage deep analysis pipeline'),
       },
@@ -165,6 +166,7 @@ export function createAnimSpecMcpServer() {
     },
     async (
       args: {
+        video_uri?: string;
         video_url?: string;
         video_base64?: string;
         mime_type?: string;
@@ -224,6 +226,7 @@ export function createAnimSpecMcpServer() {
           quality: args.quality,
           trigger: args.trigger,
           deepAnalysis: args.deep_analysis,
+          videoUri: args.video_uri,
           videoUrl: args.video_url,
           videoBase64: args.video_base64,
           mimeType: args.mime_type,

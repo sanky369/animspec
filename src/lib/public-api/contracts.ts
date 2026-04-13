@@ -12,6 +12,7 @@ import { isOutputFormat, isQualityLevel, isTriggerContext } from './metadata';
 
 export type AnalyzeSource =
   | { kind: 'inline_base64'; videoBase64: string; mimeType: string; fileName?: string }
+  | { kind: 'video_uri'; videoUri: string; mimeType?: string; fileName?: string }
   | { kind: 'video_url'; videoUrl: string; mimeType?: string; fileName?: string }
   | { kind: 'gemini_file'; fileUri: string; fileMimeType: string; fileName?: string }
   | { kind: 'r2_object'; r2ObjectKey: string; r2MimeType?: string; fileName?: string };
@@ -93,6 +94,7 @@ export function parsePublicAnalyzeRequest(body: unknown): PublicAnalyzeRequest {
 
   const videoBase64 = pickString(record, 'videoBase64');
   const mimeType = pickString(record, 'mimeType');
+  const videoUri = pickString(record, 'videoUri');
   const videoUrl = pickString(record, 'videoUrl');
   const fileUri = pickString(record, 'fileUri');
   const fileMimeType = pickString(record, 'fileMimeType');
@@ -102,11 +104,15 @@ export function parsePublicAnalyzeRequest(body: unknown): PublicAnalyzeRequest {
 
   const sources: AnalyzeSource[] = [];
 
-  if (videoBase64 || mimeType) {
-    if (!videoBase64 || !mimeType) {
+  if (videoBase64) {
+    if (!mimeType) {
       throw new Error('videoBase64 and mimeType are required together');
     }
     sources.push({ kind: 'inline_base64', videoBase64, mimeType, fileName });
+  }
+
+  if (videoUri) {
+    sources.push({ kind: 'video_uri', videoUri, mimeType, fileName });
   }
 
   if (videoUrl) {
@@ -125,7 +131,7 @@ export function parsePublicAnalyzeRequest(body: unknown): PublicAnalyzeRequest {
   }
 
   if (sources.length === 0) {
-    throw new Error('Provide one source: videoBase64, videoUrl, fileUri, or r2ObjectKey');
+    throw new Error('Provide one source: videoBase64, videoUri, videoUrl, fileUri, or r2ObjectKey');
   }
 
   if (sources.length > 1) {
@@ -138,9 +144,11 @@ export function parsePublicAnalyzeRequest(body: unknown): PublicAnalyzeRequest {
       ? source.fileMimeType
       : source.kind === 'inline_base64'
         ? source.mimeType
-        : source.kind === 'r2_object'
-          ? source.r2MimeType
-          : source.mimeType,
+        : source.kind === 'video_uri'
+          ? source.mimeType
+          : source.kind === 'r2_object'
+            ? source.r2MimeType
+            : source.mimeType,
     name: source.fileName,
   });
 

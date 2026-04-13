@@ -33,6 +33,8 @@ export function OAuthClientManager() {
   const [isCreating, setIsCreating] = useState(false);
   const [copiedValue, setCopiedValue] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const claudeCallback = 'https://claude.ai/api/mcp/auth_callback';
+  const chatgptCallback = 'https://chatgpt.com/connector/oauth/callback';
 
   useEffect(() => {
     async function fetchClients() {
@@ -122,6 +124,16 @@ export function OAuthClientManager() {
               Use this when Claude or another hosted connector asks for a client ID and secret. Paste the callback URL from that tool first.
             </div>
           </div>
+          <div className="connection-guide-list" style={{ marginTop: '16px' }}>
+            <div>
+              <RocketIcon className="w-4 h-4" />
+              Claude preset callback: <code>{claudeCallback}</code>
+            </div>
+            <div>
+              <RocketIcon className="w-4 h-4" />
+              ChatGPT callback changes per app. Prefer the exact value shown in ChatGPT.
+            </div>
+          </div>
           <div className="oauth-client-form">
             <input
               type="text"
@@ -148,6 +160,14 @@ export function OAuthClientManager() {
             </select>
             <button className="btn-primary btn-sm" onClick={createClient} disabled={isCreating || redirectUri.trim().length === 0}>
               {isCreating ? 'Generating…' : 'Generate OAuth Client'}
+            </button>
+          </div>
+          <div className="connection-guide-actions" style={{ justifyContent: 'flex-start', gap: '12px', marginTop: '12px' }}>
+            <button className="btn-secondary btn-sm" type="button" onClick={() => { setClientName('Claude Connector'); setRedirectUri(claudeCallback); setAuthMethod('client_secret_post'); }}>
+              Use Claude preset
+            </button>
+            <button className="btn-secondary btn-sm" type="button" onClick={() => { setClientName('ChatGPT App'); setRedirectUri(chatgptCallback); setAuthMethod('none'); }}>
+              Use ChatGPT preset
             </button>
           </div>
         </div>

@@ -25,6 +25,32 @@ interface ResolvedBinaryVideo {
   fileName: string;
 }
 
+function decodeDataUri(dataUri: string, fallbackFileName?: string): ResolvedBinaryVideo {
+  const match = dataUri.match(/^data:([^;,]+)?(;base64)?,([\s\S]*)$/);
+  if (!match) {
+    throw new Error('Invalid data URI');
+  }
+
+  const mimeType = assertAllowedMimeType(match[1] || 'video/mp4');
+  const isBase64 = Boolean(match[2]);
+  const payload = match[3] || '';
+  const buffer = Buffer.from(
+    isBase64 ? payload : decodeURIComponent(payload),
+    isBase64 ? 'base64' : 'utf8',
+  );
+
+  if (buffer.byteLength > MAX_VIDEO_SIZE_BYTES) {
+    throw new Error(`Video is too large. Maximum supported size is ${MAX_VIDEO_SIZE_BYTES / (1024 * 1024)}MB`);
+  }
+
+  return {
+    buffer,
+    mimeType,
+    sizeBytes: buffer.byteLength,
+    fileName: fallbackFileName || 'attached-video.mp4',
+  };
+}
+
 function assertAllowedMimeType(mimeType: string): string {
   if (!(ACCEPTED_VIDEO_MIME_TYPES as readonly string[]).includes(mimeType)) {
     throw new Error(
@@ -54,6 +80,10 @@ async function fetchRemoteVideo(
   fallbackMimeType?: string,
   fallbackFileName?: string
 ): Promise<ResolvedBinaryVideo> {
+  if (videoUrl.startsWith('data:')) {
+    return decodeDataUri(videoUrl, fallbackFileName);
+  }
+
   const url = new URL(videoUrl);
   if (!['http:', 'https:'].includes(url.protocol)) {
     throw new Error('videoUrl must use http or https');
@@ -133,6 +163,8 @@ async function materializeSource(source: AnalyzeSource): Promise<ResolvedBinaryV
         fileName: source.fileName || 'inline-video.mp4',
       };
     }
+    case 'video_uri':
+      return fetchRemoteVideo(source.videoUri, source.mimeType, source.fileName);
     case 'video_url':
       return fetchRemoteVideo(source.videoUrl, source.mimeType, source.fileName);
     case 'r2_object':
