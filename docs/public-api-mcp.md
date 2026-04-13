@@ -74,9 +74,13 @@ UI:
 
 Current auth:
 
-- AnimSpec API key in request headers
+- OAuth for hosted connectors like ChatGPT Apps and Claude remote connectors
+- AnimSpec API key in request headers for developer tools that can send custom headers
 
-This works for MCP clients that can send bearer or custom headers.
+This is the intended split:
+
+- hosted connector UX -> OAuth
+- local/dev-tool UX -> API key
 
 ### Shared account mode for ChatGPT
 
@@ -92,6 +96,19 @@ When present:
 - the widget labels the run as shared app mode
 
 Use this only for controlled internal testing.
+
+### OAuth for hosted connectors
+
+The server now exposes:
+
+- `/.well-known/oauth-authorization-server`
+- `/.well-known/oauth-protected-resource`
+- `/.well-known/oauth-protected-resource/api/mcp`
+- `/oauth/register`
+- `/oauth/authorize`
+- `/oauth/token`
+
+This gives ChatGPT Apps and Claude hosted connectors a proper OAuth discovery + login + token exchange path backed by AnimSpec user accounts.
 
 ### Local MCP
 

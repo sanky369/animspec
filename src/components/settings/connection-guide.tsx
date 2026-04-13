@@ -35,19 +35,24 @@ export function ConnectionGuide() {
   const analyzeUrl = useMemo(() => `${appOrigin}/api/v1/analyze`, [appOrigin]);
   const uploadUrl = useMemo(() => `${appOrigin}/api/v1/upload`, [appOrigin]);
 
-  const codexConfig = `{
+  const codexConfig = `[mcp_servers.animspec]
+url = "${mcpUrl}"
+enabled = true
+bearer_token_env_var = "ANIMSPEC_API_KEY"`;
+
+  const claudeCodeConfig = `{
   "mcpServers": {
     "animspec": {
-      "transport": {
-        "type": "http",
-        "url": "${mcpUrl}",
-        "headers": {
-          "Authorization": "Bearer YOUR_ANIMSPEC_API_KEY"
-        }
+      "type": "http",
+      "url": "${mcpUrl}",
+      "headers": {
+        "Authorization": "Bearer \${ANIMSPEC_API_KEY}"
       }
     }
   }
 }`;
+
+  const envSetup = `export ANIMSPEC_API_KEY="ask_your_key_here"`;
 
   const curlExample = `curl -X POST "${analyzeUrl}" \\
   -H "Content-Type: application/json" \\
@@ -67,7 +72,7 @@ export function ConnectionGuide() {
           <div className="settings-info">
             <div className="settings-label">Remote MCP / ChatGPT App</div>
             <div className="settings-description">
-              Use this MCP endpoint for remote clients and hosted ChatGPT app setups.
+              Use this MCP endpoint for remote clients and hosted ChatGPT or Claude connector setups.
             </div>
           </div>
           <div className="connection-guide-block">
@@ -76,22 +81,93 @@ export function ConnectionGuide() {
               <CopyButton value={mcpUrl} copyKey="mcp-url" />
             </div>
             <p className="connection-guide-note">
-              Send your AnimSpec API key as <code>Authorization: Bearer YOUR_ANIMSPEC_API_KEY</code>.
+              Hosted ChatGPT and Claude connectors should use OAuth against this server. API-key bearer auth is for local developer tools.
             </p>
           </div>
         </div>
 
         <div className="settings-row settings-row-stack">
           <div className="settings-info">
-            <div className="settings-label">Codex / Claude Code / Cursor</div>
+            <div className="settings-label">Codex CLI</div>
             <div className="settings-description">
-              If your client supports remote MCP over HTTP, start with this config and replace the key.
+              Use a bearer token environment variable. This is the most reliable setup for Codex.
             </div>
           </div>
           <div className="connection-guide-block">
             <pre className="connection-guide-code">{codexConfig}</pre>
             <div className="connection-guide-actions">
               <CopyButton value={codexConfig} copyKey="codex-config" />
+            </div>
+          </div>
+        </div>
+
+        <div className="settings-row settings-row-stack">
+          <div className="settings-info">
+            <div className="settings-label">Claude Code / Cursor / clients with HTTP header support</div>
+            <div className="settings-description">
+              Use this JSON-style config when the client supports remote MCP headers directly.
+            </div>
+          </div>
+          <div className="connection-guide-block">
+            <pre className="connection-guide-code">{claudeCodeConfig}</pre>
+            <div className="connection-guide-actions">
+              <CopyButton value={claudeCodeConfig} copyKey="claude-code-config" />
+            </div>
+          </div>
+        </div>
+
+        <div className="settings-row settings-row-stack">
+          <div className="settings-info">
+            <div className="settings-label">Claude Desktop / Claude.ai hosted connector</div>
+            <div className="settings-description">
+              Add a custom connector in the Claude UI, paste the MCP URL, and choose <strong>OAuth</strong>. Do not use the local config file for the remote URL.
+            </div>
+          </div>
+          <div className="connection-guide-grid">
+            <div className="connection-guide-mini connection-guide-mini-full">
+              <span>Steps</span>
+              <ol className="connection-guide-steps">
+                <li>Open Claude and go to <strong>Customize → Connectors</strong>.</li>
+                <li>Choose <strong>Add custom connector</strong>.</li>
+                <li>Paste <code>{mcpUrl}</code>.</li>
+                <li>Select <strong>OAuth</strong> when Claude asks for authentication.</li>
+                <li>Finish the AnimSpec sign-in screen in the browser.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <div className="settings-row settings-row-stack">
+          <div className="settings-info">
+            <div className="settings-label">ChatGPT App</div>
+            <div className="settings-description">
+              Create a new app in ChatGPT, use the same MCP URL, and choose <strong>OAuth</strong>.
+            </div>
+          </div>
+          <div className="connection-guide-grid">
+            <div className="connection-guide-mini connection-guide-mini-full">
+              <span>Steps</span>
+              <ol className="connection-guide-steps">
+                <li>Open ChatGPT and create a new app or connector.</li>
+                <li>Use <code>{mcpUrl}</code> as the MCP Server URL.</li>
+                <li>Select <strong>OAuth</strong>.</li>
+                <li>Complete the AnimSpec login and consent flow.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <div className="settings-row settings-row-stack">
+          <div className="settings-info">
+            <div className="settings-label">Environment Variable</div>
+            <div className="settings-description">
+              For local tools, put your API key in the environment before launching the client.
+            </div>
+          </div>
+          <div className="connection-guide-block">
+            <pre className="connection-guide-code">{envSetup}</pre>
+            <div className="connection-guide-actions">
+              <CopyButton value={envSetup} copyKey="env-setup" />
             </div>
           </div>
         </div>
@@ -137,7 +213,8 @@ export function ConnectionGuide() {
             <div className="connection-guide-list">
               <div><ClipboardIcon /> Create a dedicated key per tool or environment.</div>
               <div><ClipboardIcon /> Revoke keys you no longer use instead of reusing one everywhere.</div>
-              <div><ClipboardIcon /> ChatGPT app setups should point at the same MCP URL above.</div>
+              <div><ClipboardIcon /> Hosted ChatGPT and Claude connectors use OAuth, not API keys.</div>
+              <div><ClipboardIcon /> Local developer tools use your AnimSpec API key.</div>
             </div>
           </div>
         </div>

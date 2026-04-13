@@ -104,6 +104,56 @@ export interface ApiKeyRecord {
   createdAt: Date;
 }
 
+export interface OAuthClientRecord {
+  id: string;
+  clientName: string | null;
+  redirectUris: string[];
+  tokenEndpointAuthMethod: 'none' | 'client_secret_post' | 'client_secret_basic';
+  grantTypes: string[];
+  responseTypes: string[];
+  scope: string;
+  secretHash: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface OAuthAuthorizationCodeRecord {
+  id: string;
+  clientId: string;
+  userId: string;
+  redirectUri: string;
+  scope: string;
+  resource: string | null;
+  codeChallenge: string;
+  codeChallengeMethod: 'S256';
+  expiresAt: Date;
+  createdAt: Date;
+}
+
+export interface OAuthAccessTokenRecord {
+  id: string;
+  clientId: string;
+  userId: string;
+  scope: string;
+  resource: string | null;
+  expiresAt: Date;
+  refreshTokenId: string | null;
+  createdAt: Date;
+  lastUsedAt: Date | null;
+  revokedAt: Date | null;
+}
+
+export interface OAuthRefreshTokenRecord {
+  id: string;
+  clientId: string;
+  userId: string;
+  scope: string;
+  resource: string | null;
+  expiresAt: Date;
+  createdAt: Date;
+  revokedAt: Date | null;
+}
+
 // Firestore collection names
 export interface AnalysisRun {
   id: string;
@@ -144,6 +194,10 @@ export const COLLECTIONS = {
   ANALYSES: 'analyses',
   ANALYSIS_RUNS: 'analysis_runs',
   API_KEYS: 'api_keys',
+  OAUTH_CLIENTS: 'oauth_clients',
+  OAUTH_AUTHORIZATION_CODES: 'oauth_authorization_codes',
+  OAUTH_ACCESS_TOKENS: 'oauth_access_tokens',
+  OAUTH_REFRESH_TOKENS: 'oauth_refresh_tokens',
   CREDIT_TRANSACTIONS: 'credit_transactions',
   PURCHASES: 'purchases',
 } as const;
