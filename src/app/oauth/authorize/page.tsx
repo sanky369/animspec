@@ -1,6 +1,7 @@
 import { getOAuthClient } from '@/lib/oauth/store';
 import { OAUTH_SCOPE } from '@/lib/oauth/config';
 import { OAuthAuthorizeClient } from './authorize-client';
+import { BackgroundEffects } from '@/components/layout/background-effects';
 
 interface PageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -30,6 +31,8 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
   ) {
     return (
       <div className="oauth-page">
+        <BackgroundEffects />
+        <div className="oauth-grid" />
         <div className="oauth-card">
           <div className="oauth-header">
             <span className="oauth-kicker">AnimSpec Connector</span>
@@ -45,6 +48,8 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
   if (!client || !client.redirectUris.includes(redirectUri)) {
     return (
       <div className="oauth-page">
+        <BackgroundEffects />
+        <div className="oauth-grid" />
         <div className="oauth-card">
           <div className="oauth-header">
             <span className="oauth-kicker">AnimSpec Connector</span>

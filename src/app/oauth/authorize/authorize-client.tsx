@@ -2,6 +2,8 @@
 
 import { FormEvent, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
+import { BackgroundEffects } from '@/components/layout/background-effects';
+import { PlayIcon, CheckIcon, RocketIcon } from '@/components/ui/icons';
 
 interface OAuthAuthorizeClientProps {
   clientName: string;
@@ -26,6 +28,8 @@ export function OAuthAuthorizeClient(props: OAuthAuthorizeClientProps) {
     () => props.scope.split(/\s+/).filter(Boolean),
     [props.scope]
   );
+  const resourceLabel = props.resource || 'Primary AnimSpec MCP resource';
+  const clientInitial = (props.clientName || 'A').slice(0, 1).toUpperCase();
 
   async function handleAuthSubmit(event: FormEvent) {
     event.preventDefault();
@@ -93,9 +97,19 @@ export function OAuthAuthorizeClient(props: OAuthAuthorizeClientProps) {
 
   return (
     <div className="oauth-page">
+      <BackgroundEffects />
+      <div className="oauth-grid" />
       <div className="oauth-card">
         <div className="oauth-header">
-          <span className="oauth-kicker">AnimSpec Connector</span>
+          <div className="oauth-brand">
+            <div className="logo-icon">
+              <PlayIcon className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <span className="oauth-kicker">AnimSpec Connector</span>
+              <div className="oauth-brand-name">Secure account linking</div>
+            </div>
+          </div>
           <h1>{user ? 'Authorize access' : 'Sign in to continue'}</h1>
           <p>
             {user
@@ -147,6 +161,10 @@ export function OAuthAuthorizeClient(props: OAuthAuthorizeClientProps) {
             <button className="btn-secondary oauth-google-btn" type="button" onClick={handleGoogleSignIn} disabled={isSubmitting || isLoading}>
               Continue with Google
             </button>
+            <div className="oauth-trust-strip">
+              <div><CheckIcon className="w-4 h-4" /> Your AnimSpec account stays under your control.</div>
+              <div><RocketIcon className="w-4 h-4" /> You can revoke connector access later by rotating keys or disabling the client.</div>
+            </div>
           </div>
         ) : (
           <div className="oauth-consent">
@@ -156,11 +174,14 @@ export function OAuthAuthorizeClient(props: OAuthAuthorizeClientProps) {
             <div className="oauth-details">
               <div>
                 <span>Client</span>
-                <code>{props.clientName}</code>
+                <div className="oauth-identity">
+                  <div className="oauth-client-badge">{clientInitial}</div>
+                  <code>{props.clientName}</code>
+                </div>
               </div>
               <div>
                 <span>Resource</span>
-                <code>{props.resource}</code>
+                <code>{resourceLabel}</code>
               </div>
               <div>
                 <span>Scopes</span>
@@ -170,6 +191,14 @@ export function OAuthAuthorizeClient(props: OAuthAuthorizeClientProps) {
                   ))}
                 </div>
               </div>
+            </div>
+            <div className="oauth-permissions">
+              <h2>What this connector can do</h2>
+              <ul>
+                <li>Run AnimSpec video analysis on your behalf</li>
+                <li>Return structured outputs for rebuild, audit, or behavior use cases</li>
+                <li>Use only the scopes shown above</li>
+              </ul>
             </div>
             <div className="oauth-actions">
               <button className="btn-primary" type="button" onClick={handleApprove} disabled={isSubmitting}>
