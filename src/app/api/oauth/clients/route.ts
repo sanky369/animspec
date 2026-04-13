@@ -22,6 +22,10 @@ function parseRedirectUris(value: unknown): string[] {
   return [];
 }
 
+function dedupeRedirectUris(values: string[]): string[] {
+  return [...new Set(values)];
+}
+
 export async function GET(request: NextRequest) {
   const userId = await authenticateFirebaseUser(request);
   if (!userId) {
@@ -55,7 +59,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json().catch(() => ({}));
-    const redirectUris = parseRedirectUris((body as Record<string, unknown>).redirectUri ?? (body as Record<string, unknown>).redirectUris);
+    const redirectUris = dedupeRedirectUris(
+      parseRedirectUris((body as Record<string, unknown>).redirectUri ?? (body as Record<string, unknown>).redirectUris)
+    );
     const clientName = typeof (body as Record<string, unknown>).clientName === 'string'
       ? (body as Record<string, unknown>).clientName as string
       : 'AnimSpec Connector';

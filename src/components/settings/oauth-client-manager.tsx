@@ -35,6 +35,7 @@ export function OAuthClientManager() {
   const [copiedValue, setCopiedValue] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const claudeCallback = 'https://claude.ai/api/mcp/auth_callback';
+  const claudeCompatCallback = 'https://claude.com/api/mcp/auth_callback';
   const chatgptCallback = 'https://chatgpt.com/connector/oauth/callback';
 
   useEffect(() => {
@@ -86,7 +87,10 @@ export function OAuthClientManager() {
         credentials: 'include',
         body: JSON.stringify({
           clientName: clientName.trim() || 'AnimSpec Connector',
-          redirectUri: redirectUri.trim(),
+          redirectUris: redirectUri
+            .split('\n')
+            .map((value) => value.trim())
+            .filter(Boolean),
           tokenEndpointAuthMethod: authMethod,
         }),
       });
@@ -166,6 +170,10 @@ export function OAuthClientManager() {
             </div>
             <div>
               <RocketIcon className="w-4 h-4" />
+              Claude compatibility callback: <code>{claudeCompatCallback}</code>
+            </div>
+            <div>
+              <RocketIcon className="w-4 h-4" />
               ChatGPT callback changes per app. Prefer the exact value shown in ChatGPT.
             </div>
           </div>
@@ -177,12 +185,12 @@ export function OAuthClientManager() {
               onChange={(event) => setClientName(event.target.value)}
               placeholder="Connector name"
             />
-            <input
-              type="url"
+            <textarea
               className="settings-input"
               value={redirectUri}
               onChange={(event) => setRedirectUri(event.target.value)}
-              placeholder="Callback URL from Claude or ChatGPT"
+              placeholder={'Callback URL(s), one per line'}
+              rows={3}
             />
             <select
               className="settings-input"
@@ -198,7 +206,7 @@ export function OAuthClientManager() {
             </button>
           </div>
           <div className="connection-guide-actions" style={{ justifyContent: 'flex-start', gap: '12px', marginTop: '12px' }}>
-            <button className="btn-secondary btn-sm" type="button" onClick={() => { setClientName('Claude Connector'); setRedirectUri(claudeCallback); setAuthMethod('client_secret_post'); }}>
+            <button className="btn-secondary btn-sm" type="button" onClick={() => { setClientName('Claude Connector'); setRedirectUri(`${claudeCallback}\n${claudeCompatCallback}`); setAuthMethod('client_secret_post'); }}>
               Use Claude preset
             </button>
             <button className="btn-secondary btn-sm" type="button" onClick={() => { setClientName('ChatGPT App'); setRedirectUri(chatgptCallback); setAuthMethod('none'); }}>

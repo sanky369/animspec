@@ -4072,6 +4072,13 @@ select:focus {
   color: var(--text-primary);
 }
 
+textarea.settings-input {
+  min-height: 108px;
+  padding: var(--space-3) var(--space-4);
+  resize: vertical;
+  line-height: 1.5;
+}
+
 .settings-input:focus {
   outline: none;
   border-color: var(--accent-primary);
