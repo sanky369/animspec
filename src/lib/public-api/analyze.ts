@@ -264,7 +264,12 @@ export async function runPublicVideoAnalysis(
     const prepared = await prepareAnalysisSource(
       request.source,
       request.quality,
-      geminiApiKey
+      geminiApiKey,
+      {
+        preferGeminiFileUpload:
+          request.quality !== 'kimi'
+          && (request.deepAnalysis || request.source.kind === 'video_uri'),
+      }
     );
 
     const result = request.deepAnalysis

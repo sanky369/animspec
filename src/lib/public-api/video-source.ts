@@ -177,7 +177,11 @@ async function materializeSource(source: AnalyzeSource): Promise<ResolvedBinaryV
 export async function prepareAnalysisSource(
   source: AnalyzeSource,
   quality: 'balanced' | 'precise' | 'kimi',
-  geminiApiKey?: string
+  geminiApiKey?: string,
+  options?: {
+    preferGeminiFileUpload?: boolean;
+    uploadVideo?: typeof uploadVideoToGemini;
+  }
 ): Promise<PreparedAnalysisSource> {
   if (source.kind === 'gemini_file') {
     return {
@@ -193,12 +197,16 @@ export async function prepareAnalysisSource(
     throw new Error('Failed to materialize video source');
   }
 
-  if (quality !== 'kimi' && resolved.sizeBytes > GEMINI_INLINE_SIZE_LIMIT) {
+  const shouldUseGeminiFiles =
+    quality !== 'kimi'
+    && (options?.preferGeminiFileUpload || resolved.sizeBytes > GEMINI_INLINE_SIZE_LIMIT);
+
+  if (shouldUseGeminiFiles) {
     if (!geminiApiKey) {
       throw new Error('GEMINI_API_KEY is required to upload large Gemini files');
     }
     const file = new File([new Uint8Array(resolved.buffer)], resolved.fileName, { type: resolved.mimeType });
-    const uploaded = await uploadVideoToGemini(file, geminiApiKey);
+    const uploaded = await (options?.uploadVideo ?? uploadVideoToGemini)(file, geminiApiKey);
     return {
       fileUri: uploaded.uri,
       fileMimeType: uploaded.mimeType,

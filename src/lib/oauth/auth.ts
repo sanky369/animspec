@@ -38,7 +38,7 @@ export async function authenticateOAuthClient(request: NextRequest, body: URLSea
     const clientId = separatorIndex === -1 ? decoded : decoded.slice(0, separatorIndex);
     const clientSecret = separatorIndex === -1 ? '' : decoded.slice(separatorIndex + 1);
     const client = await getOAuthClient(clientId);
-    if (!client || client.tokenEndpointAuthMethod !== 'client_secret_basic' || !client.secretHash) {
+    if (!client || !client.secretHash) {
       return null;
     }
 
@@ -48,7 +48,7 @@ export async function authenticateOAuthClient(request: NextRequest, body: URLSea
 
     return {
       clientId,
-      tokenEndpointAuthMethod: client.tokenEndpointAuthMethod,
+      tokenEndpointAuthMethod: 'client_secret_basic',
     };
   }
 
@@ -69,21 +69,17 @@ export async function authenticateOAuthClient(request: NextRequest, body: URLSea
     };
   }
 
-  if (client.tokenEndpointAuthMethod === 'client_secret_post') {
-    const clientSecret = body.get('client_secret');
-    if (!client.secretHash || !clientSecret) {
-      return null;
-    }
-
-    if (!constantTimeEqual(client.secretHash, sha256Hex(clientSecret))) {
-      return null;
-    }
-
-    return {
-      clientId,
-      tokenEndpointAuthMethod: client.tokenEndpointAuthMethod,
-    };
+  const clientSecret = body.get('client_secret');
+  if (!client.secretHash || !clientSecret) {
+    return null;
   }
 
-  return null;
+  if (!constantTimeEqual(client.secretHash, sha256Hex(clientSecret))) {
+    return null;
+  }
+
+  return {
+    clientId,
+    tokenEndpointAuthMethod: 'client_secret_post',
+  };
 }
