@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { CheckIcon, CopyIcon, RocketIcon } from '@/components/ui/icons';
+import { CheckIcon, CopyIcon, RocketIcon, XIcon } from '@/components/ui/icons';
 
 interface OAuthClientItem {
   clientId: string;
@@ -31,6 +31,7 @@ export function OAuthClientManager() {
   const [authMethod, setAuthMethod] = useState<'none' | 'client_secret_post' | 'client_secret_basic'>('client_secret_post');
   const [isFetching, setIsFetching] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [deletingClientId, setDeletingClientId] = useState<string | null>(null);
   const [copiedValue, setCopiedValue] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const claudeCallback = 'https://claude.ai/api/mcp/auth_callback';
@@ -110,6 +111,40 @@ export function OAuthClientManager() {
       setError(createError instanceof Error ? createError.message : 'Failed to create OAuth client');
     } finally {
       setIsCreating(false);
+    }
+  }
+
+  async function deleteClient(clientId: string) {
+    if (deletingClientId) return;
+
+    setDeletingClientId(clientId);
+    setError(null);
+
+    try {
+      const token = await refreshToken();
+      const response = await fetch('/api/oauth/clients', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: 'include',
+        body: JSON.stringify({ clientId }),
+      });
+
+      const data = await response.json().catch(() => ({ error: 'Failed to delete OAuth client' }));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete OAuth client');
+      }
+
+      setClients((current) => current.filter((item) => item.clientId !== clientId));
+      if (createdClient?.clientId === clientId) {
+        setCreatedClient(null);
+      }
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Failed to delete OAuth client');
+    } finally {
+      setDeletingClientId(null);
     }
   }
 
@@ -235,6 +270,14 @@ export function OAuthClientManager() {
                     <button className="btn-secondary btn-sm" onClick={() => copyText(client.clientId, `oauth-client:${client.clientId}`)}>
                       {copiedValue === `oauth-client:${client.clientId}` ? <CheckIcon /> : <CopyIcon />}
                       <span>{copiedValue === `oauth-client:${client.clientId}` ? 'Copied' : 'Copy ID'}</span>
+                    </button>
+                    <button
+                      className="btn-danger btn-danger-subtle"
+                      onClick={() => deleteClient(client.clientId)}
+                      disabled={deletingClientId === client.clientId}
+                    >
+                      <XIcon />
+                      <span>{deletingClientId === client.clientId ? 'Deleting…' : 'Delete'}</span>
                     </button>
                   </div>
                 </div>

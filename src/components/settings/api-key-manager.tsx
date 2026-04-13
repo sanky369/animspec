@@ -29,6 +29,7 @@ export function ApiKeyManager() {
   const [isFetching, setIsFetching] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [copiedValue, setCopiedValue] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -149,6 +150,40 @@ export function ApiKeyManager() {
     }
   }
 
+  async function deleteKey(id: string) {
+    if (deletingId) return;
+
+    setDeletingId(id);
+    setError(null);
+
+    try {
+      const token = await refreshToken();
+      const response = await fetch('/api/v1/api-keys', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: 'include',
+        body: JSON.stringify({ id, action: 'delete' }),
+      });
+
+      const data = await response.json().catch(() => ({ error: 'Failed to delete API key' }));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete API key');
+      }
+
+      setApiKeys((current) => current.filter((item) => item.id !== id));
+      if (createdKey?.id === id) {
+        setCreatedKey(null);
+      }
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Failed to delete API key');
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   function formatDate(value: string | null) {
     if (!value) return 'Never used';
     return new Date(value).toLocaleString('en-US', {
@@ -258,6 +293,14 @@ export function ApiKeyManager() {
                     >
                       <XIcon />
                       <span>{revokingId === item.id ? 'Revoking…' : 'Revoke'}</span>
+                    </button>
+                    <button
+                      className="btn-danger btn-danger-subtle"
+                      onClick={() => deleteKey(item.id)}
+                      disabled={deletingId === item.id}
+                    >
+                      <XIcon />
+                      <span>{deletingId === item.id ? 'Deleting…' : 'Delete'}</span>
                     </button>
                   </div>
                 </div>

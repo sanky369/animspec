@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateFirebaseUser } from '@/lib/public-api/auth';
-import { listOAuthClientsForUser, registerOAuthClient } from '@/lib/oauth/store';
+import { deleteOAuthClientForUser, listOAuthClientsForUser, registerOAuthClient } from '@/lib/oauth/store';
 import { OAUTH_SCOPE } from '@/lib/oauth/config';
 
 export const runtime = 'nodejs';
@@ -94,6 +94,45 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to create OAuth client' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const userId = await authenticateFirebaseUser(request);
+  if (!userId) {
+    return unauthorizedResponse();
+  }
+
+  try {
+    const body = await request.json().catch(() => ({}));
+    const clientId = typeof (body as Record<string, unknown>).clientId === 'string'
+      ? (body as Record<string, unknown>).clientId as string
+      : '';
+
+    if (!clientId) {
+      return NextResponse.json(
+        { error: 'clientId is required.' },
+        { status: 400 }
+      );
+    }
+
+    const deleted = await deleteOAuthClientForUser(userId, clientId);
+    if (!deleted) {
+      return NextResponse.json(
+        { error: 'OAuth client not found.' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'OAuth client deleted.',
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to delete OAuth client' },
       { status: 500 }
     );
   }

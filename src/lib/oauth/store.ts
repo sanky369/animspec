@@ -131,6 +131,22 @@ export async function listOAuthClientsForUser(userId: string): Promise<OAuthClie
   return clients.sort((left, right) => left.clientId.localeCompare(right.clientId)).reverse();
 }
 
+export async function deleteOAuthClientForUser(userId: string, clientId: string): Promise<boolean> {
+  const ref = adminDb.collection(COLLECTIONS.OAUTH_CLIENTS).doc(clientId);
+  const doc = await ref.get();
+  if (!doc.exists) {
+    return false;
+  }
+
+  const data = doc.data();
+  if (!data || data.createdByUserId !== userId) {
+    return false;
+  }
+
+  await ref.delete();
+  return true;
+}
+
 export async function createAuthorizationCode(input: {
   clientId: string;
   userId: string;

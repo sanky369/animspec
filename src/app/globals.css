@@ -4419,6 +4419,11 @@ select:focus {
   cursor: not-allowed;
 }
 
+.btn-danger-subtle {
+  background: rgba(239, 68, 68, 0.04);
+  color: rgba(239, 68, 68, 0.92);
+}
+
 /* ============================================
    ACCOUNT PAGE
    ============================================ */

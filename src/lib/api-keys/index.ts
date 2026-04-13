@@ -131,3 +131,15 @@ export async function revokeApiKey(userId: string, keyId: string): Promise<boole
 
   return true;
 }
+
+export async function deleteApiKey(userId: string, keyId: string): Promise<boolean> {
+  const docRef = adminDb.collection(COLLECTIONS.API_KEYS).doc(keyId);
+  const doc = await docRef.get();
+
+  if (!doc.exists || doc.data()?.userId !== userId) {
+    return false;
+  }
+
+  await docRef.delete();
+  return true;
+}

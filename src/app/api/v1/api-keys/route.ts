@@ -1,5 +1,5 @@
 import { type NextRequest } from 'next/server';
-import { createApiKey, listApiKeys, revokeApiKey } from '@/lib/api-keys';
+import { createApiKey, deleteApiKey, listApiKeys, revokeApiKey } from '@/lib/api-keys';
 import { authenticateFirebaseUser } from '@/lib/public-api/auth';
 
 export const runtime = 'nodejs';
@@ -77,6 +77,37 @@ export async function DELETE(request: NextRequest) {
     return Response.json({ success: true, message: 'API key revoked' });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to revoke API key';
+    return Response.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  const userId = await authenticateFirebaseUser(request);
+  if (!userId) {
+    return unauthorizedResponse();
+  }
+
+  try {
+    const body = await request.json().catch(() => ({}));
+    const keyId = typeof (body as Record<string, unknown>).id === 'string'
+      ? ((body as Record<string, unknown>).id as string)
+      : '';
+    const action = typeof (body as Record<string, unknown>).action === 'string'
+      ? ((body as Record<string, unknown>).action as string)
+      : '';
+
+    if (!keyId || action !== 'delete') {
+      return Response.json({ error: 'Missing required fields: id and action=delete' }, { status: 400 });
+    }
+
+    const deleted = await deleteApiKey(userId, keyId);
+    if (!deleted) {
+      return Response.json({ error: 'API key not found' }, { status: 404 });
+    }
+
+    return Response.json({ success: true, message: 'API key deleted' });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to delete API key';
     return Response.json({ error: message }, { status: 500 });
   }
 }
