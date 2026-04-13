@@ -1,24 +1,29 @@
-export type OutputFormat =
-  | 'clone_ui_animation'
-  | 'clone_component'
-  | 'clone_landing_page'
-  | 'copy_design_style'
-  | 'extract_design_tokens'
-  | 'remotion_demo_template'
-  | 'qa_clone_checklist'
-  | 'accessibility_audit'
-  | 'ui_ux_audit'
-  | 'interaction_state_machine'
-  | 'performance_budget'
-  | 'lottie_rive_export'
-  | 'storyboard_breakdown'
-  | 'tailwind_animate'
-  | 'react_native_reanimated'
-  | 'figma_motion_spec';
+export const OUTPUT_FORMATS = [
+  'clone_ui_animation',
+  'clone_component',
+  'clone_landing_page',
+  'copy_design_style',
+  'extract_design_tokens',
+  'remotion_demo_template',
+  'qa_clone_checklist',
+  'accessibility_audit',
+  'ui_ux_audit',
+  'interaction_state_machine',
+  'performance_budget',
+  'lottie_rive_export',
+  'storyboard_breakdown',
+  'tailwind_animate',
+  'react_native_reanimated',
+  'figma_motion_spec',
+] as const;
 
-export type QualityLevel = 'balanced' | 'precise' | 'kimi';
+export type OutputFormat = (typeof OUTPUT_FORMATS)[number];
 
-export type TriggerContext = 'hover' | 'click' | 'scroll' | 'load' | 'loop' | 'focus' | null;
+export const QUALITY_LEVELS = ['balanced', 'precise', 'kimi'] as const;
+export type QualityLevel = (typeof QUALITY_LEVELS)[number];
+
+export const TRIGGER_CONTEXTS = ['hover', 'click', 'scroll', 'load', 'loop', 'focus'] as const;
+export type TriggerContext = (typeof TRIGGER_CONTEXTS)[number] | null;
 
 export interface VideoMetadata {
   duration: number;

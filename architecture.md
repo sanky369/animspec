@@ -22,6 +22,8 @@ AnimSpec.ai solves the problem that AI coding agents cannot process video inputs
 │  - /api/upload      → Gemini Files API (large Gemini files)  │
 │  - /api/upload-url  → R2 presigned URL (large Kimi files)    │
 │  - /api/analyze     → AI analysis streaming + credit deduct  │
+│  - /api/v1/*        → Public API key auth + programmatic API │
+│  - /api/mcp         → Remote MCP (Streamable HTTP)           │
 │  - /api/analyses    → User history CRUD                      │
 │  - /api/checkout    → Lemon Squeezy payment                  │
 │  - /api/webhooks    → Payment confirmation                   │
@@ -208,6 +210,21 @@ Main analysis endpoint with SSE streaming response.
 - **Credits:** Deducted based on quality/mode (balanced: 3, precise: 20, agentic balanced: 5, agentic precise: 30)
 - **Timeout:** 300 seconds
 
+### `POST /api/v1/analyze`
+Programmatic JSON API authenticated by AnimSpec API key.
+
+- **Input:** JSON with one video source (`videoBase64`, `videoUrl`, `fileUri`, or `r2ObjectKey`), format, quality, trigger, and optional `deepAnalysis`
+- **Output:** JSON analysis result with credit usage and deep-run metadata
+- **Auth:** `x-api-key` or `Authorization: Bearer ask_...`
+
+### `POST /api/mcp`
+Remote MCP endpoint using Streamable HTTP.
+
+- **Transport:** Streamable HTTP
+- **UI:** tool-linked inline widget resource for ChatGPT-style hosts
+- **Auth:** AnimSpec API key via request headers, or optional shared-account mode via `CHATGPT_APP_SHARED_USER_ID`
+- **Tools:** `analyze_video`, `list_formats`, `list_models`
+
 ### `POST /api/upload`
 Upload large videos (>20MB) to the Gemini Files API.
 
@@ -221,6 +238,12 @@ Get presigned URL for Cloudflare R2 direct upload.
 - **Input:** `{ fileName, contentType, contentLength }`
 - **Output:** `{ uploadUrl, objectKey }`
 - **Details:** Presigned URL valid for 1 hour
+
+### `POST /api/v1/upload`
+Programmatic Gemini Files upload authenticated by AnimSpec API key.
+
+### `POST /api/v1/upload-url`
+Programmatic R2 upload URL authenticated by AnimSpec API key.
 
 ### `GET/POST/DELETE /api/analyses`
 CRUD operations for analysis history, scoped to authenticated user.

@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { DashboardHeader } from '@/components/dashboard';
 import { UserIcon } from '@/components/ui/icons';
+import { ApiKeyManager } from '@/components/settings/api-key-manager';
+import { ConnectionGuide } from '@/components/settings/connection-guide';
 
 export default function SettingsPage() {
   const { user, profile } = useAuth();
@@ -88,6 +90,10 @@ export default function SettingsPage() {
             )}
           </div>
         </div>
+
+        <ApiKeyManager />
+
+        <ConnectionGuide />
 
         {/* Danger Zone */}
         <div className="settings-section">

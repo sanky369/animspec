@@ -173,6 +173,12 @@ export default function AccountPage() {
                 <span className="badge badge-subtle">Locked</span>
               )}
             </div>
+            <div className="account-status-row">
+              <span>API & MCP Access</span>
+              <a href="/dashboard/settings" className="btn-secondary btn-sm">
+                Open Settings
+              </a>
+            </div>
           </div>
         </div>
 

@@ -61,6 +61,7 @@ export interface Analysis {
   verificationScore?: number | null;
   pipelineFamily?: 'reconstruct' | 'audit' | 'behavior' | null;
   pipelineVersion?: string | null;
+  source?: 'web' | 'api' | 'mcp' | null;
   createdAt: Date;
 }
 
@@ -89,6 +90,17 @@ export interface Purchase {
   currency: string;
   lemonSqueezyOrderId: string;
   status: PurchaseStatus;
+  createdAt: Date;
+}
+
+export interface ApiKeyRecord {
+  id: string;
+  userId: string;
+  keyHash: string;
+  prefix: string;
+  name: string;
+  isActive: boolean;
+  lastUsedAt: Date | null;
   createdAt: Date;
 }
 
@@ -131,6 +143,7 @@ export const COLLECTIONS = {
   PROFILES: 'profiles',
   ANALYSES: 'analyses',
   ANALYSIS_RUNS: 'analysis_runs',
+  API_KEYS: 'api_keys',
   CREDIT_TRANSACTIONS: 'credit_transactions',
   PURCHASES: 'purchases',
 } as const;

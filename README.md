@@ -5,6 +5,7 @@ AnimSpec turns UI videos into structured outputs that agents and developers can 
 For detailed architecture and the long-term Deep Analysis roadmap, see:
 
 - `docs/deep-analysis-v2-spec.md`
+- `docs/public-api-mcp.md`
 - `architecture.md`
 - `spec.md`
 
@@ -20,6 +21,21 @@ Examples:
 - generate motion specs
 - run accessibility, performance, or UI/UX audits
 - infer interaction state machines
+
+## Programmatic access
+
+AnimSpec now exposes a public API and MCP surface for agent workflows.
+
+- `POST /api/v1/api-keys` to mint API keys from a signed-in user session
+- `POST /api/v1/analyze` to run regular or deep analysis with an API key
+- `POST /api/v1/upload` for Gemini Files uploads
+- `POST /api/v1/upload-url` for direct R2 uploads
+- `POST /api/mcp` for remote MCP clients using Streamable HTTP
+- `npm run mcp` for a local stdio MCP thin client
+
+The remote MCP endpoint now also exposes an inline app widget for ChatGPT-style hosts.
+
+See `docs/public-api-mcp.md` for usage patterns and current auth constraints.
 
 ## Analysis modes
 
