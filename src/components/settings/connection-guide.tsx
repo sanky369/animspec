@@ -34,6 +34,11 @@ export function ConnectionGuide() {
   const mcpUrl = useMemo(() => `${appOrigin}/api/mcp`, [appOrigin]);
   const analyzeUrl = useMemo(() => `${appOrigin}/api/v1/analyze`, [appOrigin]);
   const uploadUrl = useMemo(() => `${appOrigin}/api/v1/upload`, [appOrigin]);
+  const oauthAuthUrl = useMemo(() => `${appOrigin}/oauth/authorize`, [appOrigin]);
+  const oauthTokenUrl = useMemo(() => `${appOrigin}/oauth/token`, [appOrigin]);
+  const oauthRegistrationUrl = useMemo(() => `${appOrigin}/oauth/register`, [appOrigin]);
+  const oauthMetadataUrl = useMemo(() => `${appOrigin}/.well-known/oauth-authorization-server`, [appOrigin]);
+  const protectedResourceUrl = useMemo(() => `${appOrigin}/.well-known/oauth-protected-resource/api/mcp`, [appOrigin]);
 
   const codexConfig = `[mcp_servers.animspec]
 url = "${mcpUrl}"
@@ -124,6 +129,41 @@ bearer_token_env_var = "ANIMSPEC_API_KEY"`;
             </div>
           </div>
           <div className="connection-guide-grid">
+            <div className="connection-guide-mini">
+              <span>Auth URL</span>
+              <div className="connection-guide-inline">
+                <code>{oauthAuthUrl}</code>
+                <CopyButton value={oauthAuthUrl} copyKey="claude-auth-url" />
+              </div>
+            </div>
+            <div className="connection-guide-mini">
+              <span>Token URL</span>
+              <div className="connection-guide-inline">
+                <code>{oauthTokenUrl}</code>
+                <CopyButton value={oauthTokenUrl} copyKey="claude-token-url" />
+              </div>
+            </div>
+            <div className="connection-guide-mini">
+              <span>Registration URL</span>
+              <div className="connection-guide-inline">
+                <code>{oauthRegistrationUrl}</code>
+                <CopyButton value={oauthRegistrationUrl} copyKey="claude-registration-url" />
+              </div>
+            </div>
+            <div className="connection-guide-mini">
+              <span>Scope</span>
+              <div className="connection-guide-inline">
+                <code>animspec:mcp</code>
+                <CopyButton value="animspec:mcp" copyKey="claude-scope" />
+              </div>
+            </div>
+            <div className="connection-guide-mini">
+              <span>Token auth method</span>
+              <div className="connection-guide-inline">
+                <code>none</code>
+                <CopyButton value="none" copyKey="claude-token-auth-method" />
+              </div>
+            </div>
             <div className="connection-guide-mini connection-guide-mini-full">
               <span>Steps</span>
               <ol className="connection-guide-steps">
@@ -131,6 +171,7 @@ bearer_token_env_var = "ANIMSPEC_API_KEY"`;
                 <li>Choose <strong>Add custom connector</strong>.</li>
                 <li>Paste <code>{mcpUrl}</code>.</li>
                 <li>Select <strong>OAuth</strong> when Claude asks for authentication.</li>
+                <li>If Claude asks for manual OAuth fields, use the Auth URL, Token URL, Registration URL, and scope shown above.</li>
                 <li>Finish the AnimSpec sign-in screen in the browser.</li>
               </ol>
             </div>
@@ -145,14 +186,63 @@ bearer_token_env_var = "ANIMSPEC_API_KEY"`;
             </div>
           </div>
           <div className="connection-guide-grid">
+            <div className="connection-guide-mini">
+              <span>Auth URL</span>
+              <div className="connection-guide-inline">
+                <code>{oauthAuthUrl}</code>
+                <CopyButton value={oauthAuthUrl} copyKey="chatgpt-auth-url" />
+              </div>
+            </div>
+            <div className="connection-guide-mini">
+              <span>Token URL</span>
+              <div className="connection-guide-inline">
+                <code>{oauthTokenUrl}</code>
+                <CopyButton value={oauthTokenUrl} copyKey="chatgpt-token-url" />
+              </div>
+            </div>
+            <div className="connection-guide-mini">
+              <span>Registration URL</span>
+              <div className="connection-guide-inline">
+                <code>{oauthRegistrationUrl}</code>
+                <CopyButton value={oauthRegistrationUrl} copyKey="chatgpt-registration-url" />
+              </div>
+            </div>
+            <div className="connection-guide-mini">
+              <span>Scope</span>
+              <div className="connection-guide-inline">
+                <code>animspec:mcp</code>
+                <CopyButton value="animspec:mcp" copyKey="chatgpt-scope" />
+              </div>
+            </div>
+            <div className="connection-guide-mini">
+              <span>Token auth method</span>
+              <div className="connection-guide-inline">
+                <code>none</code>
+                <CopyButton value="none" copyKey="chatgpt-token-auth-method" />
+              </div>
+            </div>
             <div className="connection-guide-mini connection-guide-mini-full">
               <span>Steps</span>
               <ol className="connection-guide-steps">
                 <li>Open ChatGPT and create a new app or connector.</li>
                 <li>Use <code>{mcpUrl}</code> as the MCP Server URL.</li>
                 <li>Select <strong>OAuth</strong>.</li>
+                <li>If ChatGPT asks for manual OAuth setup, use the Auth URL, Token URL, Registration URL, and scope shown above.</li>
                 <li>Complete the AnimSpec login and consent flow.</li>
               </ol>
+            </div>
+            <div className="connection-guide-mini connection-guide-mini-full">
+              <span>Discovery URLs</span>
+              <div className="connection-guide-stack">
+                <div className="connection-guide-inline">
+                  <code>{oauthMetadataUrl}</code>
+                  <CopyButton value={oauthMetadataUrl} copyKey="oauth-metadata-url" />
+                </div>
+                <div className="connection-guide-inline">
+                  <code>{protectedResourceUrl}</code>
+                  <CopyButton value={protectedResourceUrl} copyKey="protected-resource-url" />
+                </div>
+              </div>
             </div>
           </div>
         </div>

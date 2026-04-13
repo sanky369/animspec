@@ -298,9 +298,13 @@ export async function validateOAuthAccessToken(accessToken: string): Promise<OAu
 export function buildClientRegistrationResponse(origin: string, client: RegisteredOAuthClient) {
   return {
     client_id: client.clientId,
-    client_secret: client.clientSecret,
     client_id_issued_at: Math.floor(now() / 1000),
-    client_secret_expires_at: client.clientSecret ? 0 : undefined,
+    ...(client.clientSecret
+      ? {
+          client_secret: client.clientSecret,
+          client_secret_expires_at: 0,
+        }
+      : {}),
     redirect_uris: client.redirectUris,
     client_name: client.clientName,
     grant_types: client.grantTypes,
