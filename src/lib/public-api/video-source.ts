@@ -202,11 +202,11 @@ export async function prepareAnalysisSource(
     && (options?.preferGeminiFileUpload || resolved.sizeBytes > GEMINI_INLINE_SIZE_LIMIT);
 
   if (shouldUseGeminiFiles) {
-    if (!geminiApiKey) {
+    if (!geminiApiKey && !options?.uploadVideo) {
       throw new Error('GEMINI_API_KEY is required to upload large Gemini files');
     }
     const file = new File([new Uint8Array(resolved.buffer)], resolved.fileName, { type: resolved.mimeType });
-    const uploaded = await (options?.uploadVideo ?? uploadVideoToGemini)(file, geminiApiKey);
+    const uploaded = await (options?.uploadVideo ?? uploadVideoToGemini)(file, geminiApiKey || '');
     return {
       fileUri: uploaded.uri,
       fileMimeType: uploaded.mimeType,

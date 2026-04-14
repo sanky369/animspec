@@ -5,6 +5,7 @@ import { runPublicVideoAnalysis } from '@/lib/public-api/analyze';
 import { buildFormatsMarkdown, buildQualitiesMarkdown } from '@/lib/public-api/metadata';
 import { ANIMSPEC_WIDGET_URI, getAnimSpecWidgetHtml } from '@/lib/mcp/widget';
 import { inferUseCaseFromIntent } from '@/lib/mcp/use-case-inference';
+import { prepareVideoInputForMcp } from '@/lib/public-api/prepare-video-input';
 
 function buildAnalyzeResponseText(result: Awaited<ReturnType<typeof runPublicVideoAnalysis>>): string {
   const parts = [
@@ -128,11 +129,109 @@ export function createAnimSpecMcpServer() {
   );
 
   server.registerTool(
+    'prepare_video_input',
+    {
+      title: 'Prepare video input',
+      description: 'Normalize an attached video into a reusable backend reference before calling analyze_video. Use this first when a hosted client gives you a video attachment, base64 blob, or attachment URI.',
+      inputSchema: {
+        video_uri: z.string().optional().describe('Generic video URI for attached files or remote resources. Prefer this for hosted attachment handoff.'),
+        video_url: z.string().url().optional().describe('Publicly fetchable HTTP(S) video URL'),
+        video_base64: z.string().optional().describe('Base64-encoded video payload'),
+        mime_type: z.string().optional().describe('Required with video_base64; optional with video_uri or video_url'),
+        file_name: z.string().optional().describe('Optional file name for history and logs'),
+        quality: z.string().optional().describe('balanced, precise, or kimi. Used to choose the best upload strategy.'),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (args: {
+      video_uri?: string;
+      video_url?: string;
+      video_base64?: string;
+      mime_type?: string;
+      file_name?: string;
+      quality?: string;
+    }) => {
+      try {
+        const sourceCandidates = [
+          args.video_base64
+            ? { kind: 'inline_base64' as const, videoBase64: args.video_base64, mimeType: args.mime_type || '', fileName: args.file_name }
+            : null,
+          args.video_uri
+            ? { kind: 'video_uri' as const, videoUri: args.video_uri, mimeType: args.mime_type, fileName: args.file_name }
+            : null,
+          args.video_url
+            ? { kind: 'video_url' as const, videoUrl: args.video_url, mimeType: args.mime_type, fileName: args.file_name }
+            : null,
+        ].filter(Boolean);
+
+        if (sourceCandidates.length !== 1) {
+          return {
+            content: [{
+              type: 'text' as const,
+              text: 'Provide exactly one source: video_uri, video_url, or video_base64.',
+            }],
+            isError: true,
+          };
+        }
+
+        if (sourceCandidates[0]?.kind === 'inline_base64' && !args.mime_type) {
+          return {
+            content: [{
+              type: 'text' as const,
+              text: 'mime_type is required with video_base64.',
+            }],
+            isError: true,
+          };
+        }
+
+        const prepared = await prepareVideoInputForMcp({
+          source: sourceCandidates[0]!,
+          quality: args.quality === 'precise' || args.quality === 'kimi' ? args.quality : 'balanced',
+          preferGeminiFileUpload: true,
+        });
+        const structuredPrepared = {
+          fileUri: prepared.fileUri ?? null,
+          fileMimeType: prepared.fileMimeType ?? null,
+          videoBase64: prepared.videoBase64 ?? null,
+          mimeType: prepared.mimeType ?? null,
+          fileName: prepared.fileName,
+          fileSize: prepared.fileSize,
+          recommendedField: prepared.recommendedField,
+          recommendedMimeField: prepared.recommendedMimeField,
+          notes: prepared.notes,
+        };
+
+        return {
+          structuredContent: structuredPrepared,
+          content: [{
+            type: 'text' as const,
+            text: [
+              `Prepared video input for ${prepared.fileName}.`,
+              `Next step: call analyze_video using ${prepared.recommendedField} and ${prepared.recommendedMimeField}.`,
+              ...prepared.notes,
+            ].join('\n'),
+          }],
+        };
+      } catch (error) {
+        return {
+          content: [{ type: 'text' as const, text: `Error: ${error instanceof Error ? error.message : 'Failed to prepare video input'}` }],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.registerTool(
     'analyze_video',
     {
       title: 'Analyze video',
       description:
-        'Analyze a UI video and return a rebuild, audit, or behavior output. You can pass an explicit format or a user_goal and let AnimSpec infer the right use case first. If the user attached a video in ChatGPT, pass the attachment URI in video_uri. Quality mapping: balanced = Gemini 3 Flash, precise = Gemini 3.1 Pro, kimi = Kimi K2.5.',
+        'Analyze a UI video and return a rebuild, audit, or behavior output. You can pass an explicit format or a user_goal and let AnimSpec infer the right use case first. If the user attached a video in ChatGPT or another hosted tool, call prepare_video_input first, then pass the returned file_uri or video_base64 here. Quality mapping: balanced = Gemini 3 Flash, precise = Gemini 3.1 Pro, kimi = Kimi K2.5.',
       inputSchema: {
         video_uri: z.string().optional().describe('Generic video URI for attached files or remote resources. Prefer this for ChatGPT/hosted attachment handoff. Supports https URLs and data URIs when the host provides them.'),
         video_url: z.string().url().optional().describe('Publicly fetchable HTTP(S) video URL'),
