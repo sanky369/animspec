@@ -3,23 +3,34 @@ import { adminAuth } from '@/lib/firebase/admin';
 import { constantTimeEqual, sha256Hex } from './crypto';
 import { getOAuthClient, validateOAuthAccessToken } from './store';
 
-export async function authenticateSessionUser(request: NextRequest): Promise<string | null> {
-  const authHeader = request.headers.get('authorization');
-  const sessionCookie = request.cookies.get('__session')?.value;
-  const token = authHeader?.startsWith('Bearer ')
-    ? authHeader.slice(7).trim()
-    : sessionCookie;
-
-  if (!token) {
-    return null;
-  }
-
+async function verifyFirebaseBrowserCredential(token: string): Promise<string | null> {
   try {
     const decoded = await adminAuth.verifyIdToken(token);
     return decoded.uid;
   } catch {
+    // Fall through to session-cookie verification for real Firebase session cookies.
+  }
+
+  try {
+    const decoded = await adminAuth.verifySessionCookie(token, false);
+    return decoded.uid;
+  } catch {
     return null;
   }
+}
+
+export async function authenticateSessionUser(request: NextRequest): Promise<string | null> {
+  const authHeader = request.headers.get('authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    return verifyFirebaseBrowserCredential(authHeader.slice(7).trim());
+  }
+
+  const sessionCookie = request.cookies.get('__session')?.value;
+  if (!sessionCookie) {
+    return null;
+  }
+
+  return verifyFirebaseBrowserCredential(sessionCookie);
 }
 
 export async function authenticateOAuthBearerToken(rawToken: string) {

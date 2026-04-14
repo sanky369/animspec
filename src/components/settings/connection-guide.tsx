@@ -182,7 +182,7 @@ bearer_token_env_var = "ANIMSPEC_API_KEY"`;
           <div className="settings-info">
             <div className="settings-label">ChatGPT App</div>
             <div className="settings-description">
-              Create a new app in ChatGPT, use the same MCP URL, and choose <strong>OAuth</strong>.
+              Create a new app in ChatGPT, use the same MCP URL, and choose <strong>OAuth</strong>. Prefer automatic client registration first.
             </div>
           </div>
           <div className="connection-guide-grid">
@@ -227,6 +227,7 @@ bearer_token_env_var = "ANIMSPEC_API_KEY"`;
                 <li>Open ChatGPT and create a new app or connector.</li>
                 <li>Use <code>{mcpUrl}</code> as the MCP Server URL.</li>
                 <li>Select <strong>OAuth</strong>.</li>
+                <li>Let ChatGPT use DCR if it offers automatic registration.</li>
                 <li>If ChatGPT asks for manual OAuth setup, use the Auth URL, Token URL, Registration URL, and scope shown above.</li>
                 <li>Complete the AnimSpec login and consent flow.</li>
               </ol>

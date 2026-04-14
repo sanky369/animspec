@@ -17,7 +17,7 @@ interface OAuthAuthorizeClientProps {
 }
 
 export function OAuthAuthorizeClient(props: OAuthAuthorizeClientProps) {
-  const { user, isLoading, signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
+  const { user, isLoading, signInWithEmail, signUpWithEmail, signInWithGoogle, refreshToken } = useAuth();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -66,10 +66,16 @@ export function OAuthAuthorizeClient(props: OAuthAuthorizeClientProps) {
     setIsSubmitting(true);
 
     try {
+      const token = await refreshToken();
+      if (!token) {
+        throw new Error('Your sign-in session is not ready yet. Please try again.');
+      }
+
       const response = await fetch('/api/oauth/authorize/approve', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
         credentials: 'include',
         body: JSON.stringify({

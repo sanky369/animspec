@@ -82,21 +82,6 @@ This is the intended split:
 - hosted connector UX -> OAuth
 - local/dev-tool UX -> API key
 
-### Shared account mode for ChatGPT
-
-If you want direct ChatGPT app testing without wiring OAuth yet, set:
-
-```bash
-CHATGPT_APP_SHARED_USER_ID=<firebase-user-id>
-```
-
-When present:
-
-- unauthenticated MCP app calls can run analysis through that shared account
-- the widget labels the run as shared app mode
-
-Use this only for controlled internal testing.
-
 ### OAuth for hosted connectors
 
 The server now exposes:
@@ -109,6 +94,30 @@ The server now exposes:
 - `/oauth/token`
 
 This gives ChatGPT Apps and Claude hosted connectors a proper OAuth discovery + login + token exchange path backed by AnimSpec user accounts.
+
+Important host differences:
+
+- ChatGPT should use DCR first. Manual callback/client setup is a fallback path.
+- Claude remote connectors should allowlist both:
+  - `https://claude.ai/api/mcp/auth_callback`
+  - `https://claude.com/api/mcp/auth_callback`
+
+## Hosted file input
+
+The backend can normalize:
+
+- `video_uri`
+- `video_url`
+- `file_uri`
+- `r2ObjectKey`
+- `video_base64`
+
+The MCP layer now adds a dedicated `prepare_video_input` tool so hosted clients can normalize an attached file into a backend-friendly reference before calling `analyze_video`.
+
+Practical support by host:
+
+- ChatGPT: supported when the host provides a real downloadable attachment URL or file object that can be mapped into `video_uri`.
+- Claude remote connectors: treat as URL/reference-based unless the host exposes a real downloadable file URL. For true local file access, prefer the local stdio thin client.
 
 ### Local MCP
 

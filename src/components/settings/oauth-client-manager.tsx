@@ -174,7 +174,7 @@ export function OAuthClientManager() {
             </div>
             <div>
               <RocketIcon className="w-4 h-4" />
-              ChatGPT callback changes per app. Prefer the exact value shown in ChatGPT.
+              ChatGPT should use DCR first. Only use the ChatGPT preset if the app UI explicitly asks for a manual callback URL.
             </div>
           </div>
           <div className="oauth-client-form">
@@ -210,7 +210,7 @@ export function OAuthClientManager() {
               Use Claude preset
             </button>
             <button className="btn-secondary btn-sm" type="button" onClick={() => { setClientName('ChatGPT App'); setRedirectUri(chatgptCallback); setAuthMethod('none'); }}>
-              Use ChatGPT preset
+              Use ChatGPT fallback preset
             </button>
           </div>
         </div>

@@ -6,6 +6,7 @@ import { buildFormatsMarkdown, buildQualitiesMarkdown } from '@/lib/public-api/m
 import { ANIMSPEC_WIDGET_URI, getAnimSpecWidgetHtml } from '@/lib/mcp/widget';
 import { inferUseCaseFromIntent } from '@/lib/mcp/use-case-inference';
 import { prepareVideoInputForMcp } from '@/lib/public-api/prepare-video-input';
+import { normalizeMcpVideoSource } from '@/lib/mcp/video-input';
 
 function buildAnalyzeResponseText(result: Awaited<ReturnType<typeof runPublicVideoAnalysis>>): string {
   const parts = [
@@ -134,6 +135,12 @@ export function createAnimSpecMcpServer() {
       title: 'Prepare video input',
       description: 'Normalize an attached video into a reusable backend reference before calling analyze_video. Use this first when a hosted client gives you a video attachment, base64 blob, or attachment URI.',
       inputSchema: {
+        video_file: z.object({
+          download_url: z.string().optional(),
+          file_id: z.string().optional(),
+          mime_type: z.string().optional(),
+          name: z.string().optional(),
+        }).optional().describe('Hosted file object. For ChatGPT apps, this should contain the attachment download_url and optional file_id.'),
         video_uri: z.string().optional().describe('Generic video URI for attached files or remote resources. Prefer this for hosted attachment handoff.'),
         video_url: z.string().url().optional().describe('Publicly fetchable HTTP(S) video URL'),
         video_base64: z.string().optional().describe('Base64-encoded video payload'),
@@ -147,8 +154,17 @@ export function createAnimSpecMcpServer() {
         idempotentHint: false,
         openWorldHint: false,
       },
+      _meta: {
+        'openai/fileParams': ['video_file'],
+      },
     },
     async (args: {
+      video_file?: {
+        download_url?: string;
+        file_id?: string;
+        mime_type?: string;
+        name?: string;
+      };
       video_uri?: string;
       video_url?: string;
       video_base64?: string;
@@ -157,40 +173,10 @@ export function createAnimSpecMcpServer() {
       quality?: string;
     }) => {
       try {
-        const sourceCandidates = [
-          args.video_base64
-            ? { kind: 'inline_base64' as const, videoBase64: args.video_base64, mimeType: args.mime_type || '', fileName: args.file_name }
-            : null,
-          args.video_uri
-            ? { kind: 'video_uri' as const, videoUri: args.video_uri, mimeType: args.mime_type, fileName: args.file_name }
-            : null,
-          args.video_url
-            ? { kind: 'video_url' as const, videoUrl: args.video_url, mimeType: args.mime_type, fileName: args.file_name }
-            : null,
-        ].filter(Boolean);
-
-        if (sourceCandidates.length !== 1) {
-          return {
-            content: [{
-              type: 'text' as const,
-              text: 'Provide exactly one source: video_uri, video_url, or video_base64.',
-            }],
-            isError: true,
-          };
-        }
-
-        if (sourceCandidates[0]?.kind === 'inline_base64' && !args.mime_type) {
-          return {
-            content: [{
-              type: 'text' as const,
-              text: 'mime_type is required with video_base64.',
-            }],
-            isError: true,
-          };
-        }
+        const source = normalizeMcpVideoSource(args);
 
         const prepared = await prepareVideoInputForMcp({
-          source: sourceCandidates[0]!,
+          source,
           quality: args.quality === 'precise' || args.quality === 'kimi' ? args.quality : 'balanced',
           preferGeminiFileUpload: true,
         });
@@ -231,8 +217,14 @@ export function createAnimSpecMcpServer() {
     {
       title: 'Analyze video',
       description:
-        'Analyze a UI video and return a rebuild, audit, or behavior output. You can pass an explicit format or a user_goal and let AnimSpec infer the right use case first. If the user attached a video in ChatGPT or another hosted tool, call prepare_video_input first, then pass the returned file_uri or video_base64 here. Quality mapping: balanced = Gemini 3 Flash, precise = Gemini 3.1 Pro, kimi = Kimi K2.5.',
+        'Analyze a UI video and return a rebuild, audit, or behavior output. You can pass an explicit format or a user_goal and let AnimSpec infer the right use case first. If the user attached a video in ChatGPT or another hosted tool, pass video_file when available or call prepare_video_input first, then pass the returned file_uri or video_base64 here. Quality mapping: balanced = Gemini 3 Flash, precise = Gemini 3.1 Pro, kimi = Kimi K2.5.',
       inputSchema: {
+        video_file: z.object({
+          download_url: z.string().optional(),
+          file_id: z.string().optional(),
+          mime_type: z.string().optional(),
+          name: z.string().optional(),
+        }).optional().describe('Hosted file object. For ChatGPT apps, this should contain the attachment download_url and optional file_id.'),
         video_uri: z.string().optional().describe('Generic video URI for attached files or remote resources. Prefer this for ChatGPT/hosted attachment handoff. Supports https URLs and data URIs when the host provides them.'),
         video_url: z.string().url().optional().describe('Publicly fetchable HTTP(S) video URL'),
         video_base64: z.string().optional().describe('Base64-encoded video payload'),
@@ -258,6 +250,7 @@ export function createAnimSpecMcpServer() {
           resourceUri: ANIMSPEC_WIDGET_URI,
           visibility: ['model', 'app'],
         },
+        'openai/fileParams': ['video_file'],
         'openai/outputTemplate': ANIMSPEC_WIDGET_URI,
         'openai/toolInvocation/invoking': 'Analyzing video…',
         'openai/toolInvocation/invoked': 'Analysis ready.',
@@ -265,6 +258,12 @@ export function createAnimSpecMcpServer() {
     },
     async (
       args: {
+        video_file?: {
+          download_url?: string;
+          file_id?: string;
+          mime_type?: string;
+          name?: string;
+        };
         video_uri?: string;
         video_url?: string;
         video_base64?: string;
@@ -301,6 +300,7 @@ export function createAnimSpecMcpServer() {
       }
 
       try {
+        const source = normalizeMcpVideoSource(args);
         const useCase = args.format
           ? null
           : args.user_goal
@@ -325,14 +325,16 @@ export function createAnimSpecMcpServer() {
           quality: args.quality,
           trigger: args.trigger,
           deepAnalysis: args.deep_analysis,
-          videoUri: args.video_uri,
-          videoUrl: args.video_url,
-          videoBase64: args.video_base64,
-          mimeType: args.mime_type,
+          ...(source.kind === 'video_uri'
+            ? { videoUri: source.videoUri }
+            : source.kind === 'video_url'
+              ? { videoUrl: source.videoUrl }
+              : { videoBase64: source.videoBase64 }),
+          mimeType: source.mimeType,
           fileUri: args.file_uri,
           fileMimeType: args.file_mime_type,
           r2ObjectKey: args.r2_object_key,
-          fileName: args.file_name,
+          fileName: source.fileName,
         });
 
         const result = await runPublicVideoAnalysis({
