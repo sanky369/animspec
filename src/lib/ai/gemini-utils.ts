@@ -5,6 +5,9 @@ import type { QualityLevel } from '@/types/analysis';
  * Base64 expansion + prompts + optional frame grids can make "small" videos fail.
  */
 export const GEMINI_INLINE_SAFE_LIMIT = 2 * 1024 * 1024;
+export const GEMINI_DIRECT_UPLOAD_SAFE_LIMIT = 4 * 1024 * 1024;
+
+export type GeminiUploadTransport = 'inline' | 'direct' | 'r2';
 
 interface GeminiUploadStrategyOptions {
   quality: QualityLevel;
@@ -22,6 +25,19 @@ export function shouldUseGeminiFilesUpload({
   if (quality === 'kimi') return false;
 
   return agenticMode || hasAnalysisImages || fileSize > GEMINI_INLINE_SAFE_LIMIT;
+}
+
+export function getGeminiUploadTransport({
+  quality,
+  fileSize,
+  agenticMode = false,
+  hasAnalysisImages = false,
+}: GeminiUploadStrategyOptions): GeminiUploadTransport {
+  if (!shouldUseGeminiFilesUpload({ quality, fileSize, agenticMode, hasAnalysisImages })) {
+    return 'inline';
+  }
+
+  return fileSize > GEMINI_DIRECT_UPLOAD_SAFE_LIMIT ? 'r2' : 'direct';
 }
 
 export function normalizeGeminiError(error: unknown): Error {

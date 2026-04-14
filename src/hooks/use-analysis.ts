@@ -10,7 +10,7 @@ import type {
   OutputFormat,
 } from '@/types/analysis';
 import { parseAnalysisOutput, extractVerificationReport } from '@/lib/ai/output-parsers';
-import { shouldUseGeminiFilesUpload } from '@/lib/ai/gemini-utils';
+import { getGeminiUploadTransport } from '@/lib/ai/gemini-utils';
 import { extractFrameFromVideo } from '@/lib/video/extract-frame';
 import { extractFrames } from '@/lib/ffmpeg/extract-frames';
 import { createFrameGrid } from '@/lib/ffmpeg/create-grid';
@@ -196,7 +196,7 @@ export function useAnalysis(): UseAnalysisReturn {
 
         const isKimi = config.quality === 'kimi';
         const useR2ForKimi = isKimi && file.size > KIMI_INLINE_SAFE_LIMIT;
-        const useGeminiFilesUpload = shouldUseGeminiFilesUpload({
+        const geminiUploadTransport = getGeminiUploadTransport({
           quality: config.quality,
           fileSize: file.size,
           agenticMode: config.agenticMode,
@@ -206,7 +206,7 @@ export function useAnalysis(): UseAnalysisReturn {
         // Large Gemini inline payloads can fail upstream even when they fit through Vercel.
         // Route Gemini through Files API for agentic runs, keyframe-assisted runs, or larger uploads.
         // Kimi still uses inline/R2 because it doesn't support Gemini Files.
-        if (useGeminiFilesUpload) {
+        if (geminiUploadTransport === 'direct') {
           setProgress({ step: 'uploading', message: 'Uploading video to Gemini...' });
 
           const uploadFormData = new FormData();
@@ -226,10 +226,15 @@ export function useAnalysis(): UseAnalysisReturn {
 
           formData.append('fileUri', uploadResult.uri);
           formData.append('fileMimeType', uploadResult.mimeType);
-        } else if (useR2ForKimi) {
+        } else if (geminiUploadTransport === 'r2' || useR2ForKimi) {
           // R2 path for Kimi (server fetches and converts to base64 for Moonshot).
-          // Use a conservative threshold because base64 expansion + reference images can hit request limits.
-          setProgress({ step: 'uploading', message: 'Uploading video...' });
+          // Gemini uses the same direct-to-R2 path once the raw upload would exceed Vercel's request limit.
+          setProgress({
+            step: 'uploading',
+            message: geminiUploadTransport === 'r2'
+              ? 'Uploading video to cloud storage...'
+              : 'Uploading video...'
+          });
 
           // Get presigned URL
           const urlResponse = await fetch('/api/upload-url', {
@@ -271,7 +276,8 @@ export function useAnalysis(): UseAnalysisReturn {
             throw new Error('Failed to upload video to storage');
           }
 
-          // Pass R2 object key to analyze endpoint
+          // Pass R2 object key to analyze endpoint. Gemini jobs will be uploaded
+          // to Gemini Files server-side to avoid the Vercel request body limit.
           formData.append('r2ObjectKey', objectKey);
           formData.append('r2MimeType', file.type);
         } else {

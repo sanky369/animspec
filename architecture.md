@@ -423,8 +423,8 @@ This provides the AI model with keyframe reference images for more accurate moti
 | Size Range | Gemini Path |
 |-----------|-------------|
 | 0-4MB | Inline base64 |
-| 4-20MB | Gemini Files API |
-| 20-100MB | Gemini Files API |
+| 4-20MB | Direct Gemini Files upload when request fits; otherwise R2 -> server-side Gemini Files upload |
+| 20-100MB | R2 -> server-side Gemini Files upload |
 | >100MB | Rejected |
 
 ---

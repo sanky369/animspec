@@ -122,19 +122,31 @@ export async function deleteObject(objectKey: string): Promise<void> {
 }
 
 /**
- * Fetch video from R2 and return as base64
+ * Fetch video bytes from R2
  */
-export async function fetchAsBase64(objectKey: string): Promise<{ base64: string; contentType: string }> {
+export async function fetchObject(objectKey: string): Promise<{ buffer: Buffer; contentType: string }> {
   const downloadUrl = await getDownloadPresignedUrl(objectKey);
-  
+
   const response = await fetch(downloadUrl);
   if (!response.ok) {
     throw new Error(`Failed to fetch from R2: ${response.status}`);
   }
 
   const arrayBuffer = await response.arrayBuffer();
-  const base64 = Buffer.from(arrayBuffer).toString('base64');
   const contentType = response.headers.get('content-type') || 'video/mp4';
+
+  return {
+    buffer: Buffer.from(arrayBuffer),
+    contentType,
+  };
+}
+
+/**
+ * Fetch video from R2 and return as base64
+ */
+export async function fetchAsBase64(objectKey: string): Promise<{ base64: string; contentType: string }> {
+  const { buffer, contentType } = await fetchObject(objectKey);
+  const base64 = buffer.toString('base64');
 
   return { base64, contentType };
 }

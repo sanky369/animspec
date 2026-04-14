@@ -15,7 +15,8 @@ import { COLLECTIONS, CREDIT_COSTS, AGENTIC_CREDIT_COSTS, MAX_ANALYSES_PER_USER 
 import { FieldValue } from 'firebase-admin/firestore';
 import type { OutputFormat, QualityLevel, TriggerContext, VideoMetadata } from '@/types/analysis';
 import { extractOverview } from '@/lib/ai/output-parsers';
-import { fetchAsBase64, isR2Configured, deleteObject } from '@/lib/storage/r2';
+import { uploadVideoToGemini } from '@/lib/storage/gemini-files';
+import { fetchAsBase64, fetchObject, isR2Configured, deleteObject } from '@/lib/storage/r2';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 300 seconds timeout for Kimi thinking mode
@@ -215,8 +216,8 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
 
     // Parse form data
-    const fileUri = formData.get('fileUri') as string | null;
-    const fileMimeType = formData.get('fileMimeType') as string | null;
+    let fileUri = formData.get('fileUri') as string | null;
+    let fileMimeType = formData.get('fileMimeType') as string | null;
     let videoBase64 = formData.get('videoBase64') as string | null;
     let mimeType = formData.get('mimeType') as string;
     const format = formData.get('format') as OutputFormat;
@@ -261,9 +262,29 @@ export async function POST(request: NextRequest) {
     // Fetch video from R2 if objectKey is provided
     if (r2ObjectKey && isR2Configured()) {
       try {
-        const r2Data = await fetchAsBase64(r2ObjectKey);
-        videoBase64 = r2Data.base64;
-        mimeType = r2MimeType || r2Data.contentType;
+        if (quality !== 'kimi' && !fileUri) {
+          const apiKey = process.env.GEMINI_API_KEY;
+          if (!apiKey) {
+            return new Response(
+              JSON.stringify({ error: 'GEMINI_API_KEY not configured' }),
+              { status: 500, headers: { 'Content-Type': 'application/json' } }
+            );
+          }
+
+          const r2Data = await fetchObject(r2ObjectKey);
+          const uploadFile = new File(
+            [new Uint8Array(r2Data.buffer)],
+            videoMetadata?.name || 'uploaded-video.mp4',
+            { type: r2MimeType || r2Data.contentType }
+          );
+          const uploaded = await uploadVideoToGemini(uploadFile, apiKey);
+          fileUri = uploaded.uri;
+          fileMimeType = uploaded.mimeType;
+        } else {
+          const r2Data = await fetchAsBase64(r2ObjectKey);
+          videoBase64 = r2Data.base64;
+          mimeType = r2MimeType || r2Data.contentType;
+        }
         
         // Schedule deletion after analysis (3 days handled by R2 lifecycle, but we can delete sooner)
         after(async () => {

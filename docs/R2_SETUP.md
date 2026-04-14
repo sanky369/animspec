@@ -68,12 +68,14 @@ Find your Account ID in the Cloudflare dashboard URL or R2 overview page.
 ## How It Works
 
 1. **Small files (<4MB)**: Sent directly to `/api/analyze` as base64
-2. **Medium files (4-20MB)**: 
+2. **Medium files (4-20MB)**:
    - Client requests presigned URL from `/api/upload-url`
    - Client uploads directly to R2 (bypasses Vercel)
-   - Server fetches from R2 for analysis
+   - Server either fetches from R2 for Kimi, or uploads from R2 to Gemini Files for Gemini runs
    - Object deleted after analysis (or after 3 days via lifecycle)
-3. **Large files (>20MB)**: Use Gemini Files API
+3. **Large files (>20MB)**:
+   - Client uploads directly to R2
+   - Server uploads from R2 to Gemini Files for Gemini runs
 
 ## Pricing
 
